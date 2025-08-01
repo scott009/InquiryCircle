@@ -1,0 +1,26 @@
+[Unit]
+Description=InquiryCircle Django Application
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/inquirycircle/backend
+Environment=PATH=/path/to/inquirycircle/backend/venv/bin
+Environment=DJANGO_SETTINGS_MODULE=inquirycircle.settings
+ExecStart=/path/to/inquirycircle/backend/venv/bin/gunicorn --config /path/to/inquirycircle/config/gunicorn.conf.py inquirycircle.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=3
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/path/to/inquirycircle/backend/staticfiles
+ReadWritePaths=/var/log/gunicorn
+
+[Install]
+WantedBy=multi-user.target

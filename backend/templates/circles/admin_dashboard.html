@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - InquiryCircle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                    <p class="text-gray-600">Welcome, {{ admin_name }}</p>
+                </div>
+                <a href="/" class="text-indigo-600 hover:text-indigo-500">← Back to Homepage</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Circles Management -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">Circles</h2>
+                </div>
+                <div class="p-6">
+                    <!-- Create Circle Form -->
+                    <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                        <h3 class="font-medium text-blue-900 mb-3">Create New Circle</h3>
+                        <form id="createCircleForm" class="space-y-3">
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="circleId" 
+                                    placeholder="Circle ID (e.g., team-meeting)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    required>
+                            </div>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="circleName" 
+                                    placeholder="Circle Name (e.g., Team Meeting)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    required>
+                            </div>
+                            <button 
+                                type="submit"
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm hover:bg-blue-700">
+                                Create Circle
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Existing Circles -->
+                    <div>
+                        <h3 class="font-medium text-gray-900 mb-3">Existing Circles</h3>
+                        <div id="circlesList" class="space-y-3">
+                            {% for circle_id, circle in circles.items %}
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">{{ circle.name }}</h4>
+                                        <p class="text-sm text-gray-600">ID: {{ circle.id }}</p>
+                                        <p class="text-sm text-gray-600">Room: {{ circle.jitsi_room }}</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs rounded-full 
+                                            {% if circle.active %}
+                                                bg-green-100 text-green-800
+                                            {% else %}
+                                                bg-red-100 text-red-800
+                                            {% endif %}">
+                                            {% if circle.active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                        <button 
+                                            onclick="toggleCircle('{{ circle.id }}')"
+                                            class="text-sm text-indigo-600 hover:text-indigo-500">
+                                            {% if circle.active %}Deactivate{% else %}Activate{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keys Management -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">Access Keys</h2>
+                </div>
+                <div class="p-6">
+                    <!-- Create Key Form -->
+                    <div class="mb-6 p-4 bg-green-50 rounded-lg">
+                        <h3 class="font-medium text-green-900 mb-3">Create New Key</h3>
+                        <form id="createKeyForm" class="space-y-3">
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="keyValue" 
+                                    placeholder="Key value (e.g., facilitator-john)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    required>
+                            </div>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="keyName" 
+                                    placeholder="User name (e.g., John Smith)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    required>
+                            </div>
+                            <div>
+                                <select 
+                                    id="keyType" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    required>
+                                    <option value="">Select key type</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="facilitator">Facilitator</option>
+                                    <option value="participant">Participant</option>
+                                </select>
+                            </div>
+                            <div id="circleSelectDiv" class="hidden">
+                                <select 
+                                    id="keyCircle" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                    <option value="">Select circle</option>
+                                    {% for circle_id, circle in circles.items %}
+                                    <option value="{{ circle.id }}">{{ circle.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button 
+                                type="submit"
+                                class="w-full bg-green-600 text-white py-2 px-4 rounded-md text-sm hover:bg-green-700">
+                                Create Key
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Existing Keys -->
+                    <div>
+                        <h3 class="font-medium text-gray-900 mb-3">Existing Keys</h3>
+                        <div id="keysList" class="space-y-3">
+                            {% for key, key_data in keys.items %}
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">{{ key_data.name }}</h4>
+                                        <p class="text-sm text-gray-600">Key: <code class="bg-gray-100 px-1 rounded">{{ key }}</code></p>
+                                        <p class="text-sm text-gray-600">Type: {{ key_data.type|title }}</p>
+                                        {% if key_data.circle_id %}
+                                        <p class="text-sm text-gray-600">Circle: {{ key_data.circle_id }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if key_data.type == 'admin' %}
+                                            bg-red-100 text-red-800
+                                        {% elif key_data.type == 'facilitator' %}
+                                            bg-purple-100 text-purple-800
+                                        {% else %}
+                                            bg-blue-100 text-blue-800
+                                        {% endif %}">
+                                        {{ key_data.type|title }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="message" class="fixed top-4 right-4 p-4 rounded-lg shadow-lg hidden"></div>
+
+    <script>
+        // Show/hide circle selection based on key type
+        document.getElementById('keyType').addEventListener('change', function() {
+            const circleDiv = document.getElementById('circleSelectDiv');
+            const keyType = this.value;
+            
+            if (keyType === 'facilitator' || keyType === 'participant') {
+                circleDiv.classList.remove('hidden');
+                document.getElementById('keyCircle').required = true;
+            } else {
+                circleDiv.classList.add('hidden');
+                document.getElementById('keyCircle').required = false;
+            }
+        });
+
+        // Create Circle
+        document.getElementById('createCircleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const circleId = document.getElementById('circleId').value.trim();
+            const circleName = document.getElementById('circleName').value.trim();
+            
+            try {
+                const response = await fetch('/admin-api/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_circle',
+                        circle_id: circleId,
+                        circle_name: circleName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Circle created successfully!', 'success');
+                    this.reset();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(data.error || 'Failed to create circle', 'error');
+                }
+            } catch (error) {
+                showMessage('Connection error', 'error');
+            }
+        });
+
+        // Create Key
+        document.getElementById('createKeyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const keyValue = document.getElementById('keyValue').value.trim();
+            const keyName = document.getElementById('keyName').value.trim();
+            const keyType = document.getElementById('keyType').value;
+            const keyCircle = document.getElementById('keyCircle').value;
+            
+            try {
+                const response = await fetch('/admin-api/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_key',
+                        key: keyValue,
+                        name: keyName,
+                        type: keyType,
+                        circle_id: keyCircle
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Key created successfully!', 'success');
+                    this.reset();
+                    document.getElementById('circleSelectDiv').classList.add('hidden');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(data.error || 'Failed to create key', 'error');
+                }
+            } catch (error) {
+                showMessage('Connection error', 'error');
+            }
+        });
+
+        // Toggle Circle
+        async function toggleCircle(circleId) {
+            try {
+                const response = await fetch('/admin-api/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'toggle_circle',
+                        circle_id: circleId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Circle status updated!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(data.error || 'Failed to update circle', 'error');
+                }
+            } catch (error) {
+                showMessage('Connection error', 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
+                'bg-red-100 text-red-800 border border-red-200'
+            }`;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

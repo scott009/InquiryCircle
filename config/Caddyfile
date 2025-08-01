@@ -1,0 +1,48 @@
+# Caddyfile for InquiryCircle
+# Replace yourdomain.com with your actual domain
+
+yourdomain.com {
+    # Reverse proxy to Django backend
+    reverse_proxy localhost:8000
+    
+    # Enable compression
+    encode gzip
+    
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security max-age=31536000;
+        # Prevent clickjacking
+        X-Frame-Options DENY
+        # Prevent content type sniffing
+        X-Content-Type-Options nosniff
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    
+    # Static files (if needed)
+    handle /static/* {
+        root * /path/to/inquirycircle/backend/staticfiles
+        file_server
+    }
+    
+    # Logs
+    log {
+        output file /var/log/caddy/inquirycircle.log
+        format single_field common_log
+    }
+}
+
+# Development configuration (comment out for production)
+localhost:8080 {
+    reverse_proxy localhost:8000
+    
+    # Allow all origins for development
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+}

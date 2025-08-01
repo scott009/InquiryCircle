@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ circle.name }} - InquiryCircle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">{{ circle.name }}</h1>
+                    <span class="ml-3 px-2 py-1 text-xs font-medium rounded-full 
+                        {% if user_role == 'facilitator' or user_role == 'admin' %}
+                            bg-purple-100 text-purple-800
+                        {% else %}
+                            bg-blue-100 text-blue-800
+                        {% endif %}">
+                        {{ user_role|title }}
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">{{ user_name }}</span>
+                    <a href="/" class="text-sm text-indigo-600 hover:text-indigo-500">Leave Circle</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex">
+        <!-- Video Area -->
+        <div class="flex-1 p-4">
+            <div class="bg-white rounded-lg shadow h-full">
+                <div class="p-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-900">Video Conference</h2>
+                    <p class="text-sm text-gray-500">Room: {{ jitsi_room }}</p>
+                </div>
+                <div class="p-4 h-full">
+                    <iframe 
+                        id="jitsiFrame"
+                        src="https://{{ jitsi_domain }}/{{ jitsi_room }}"
+                        width="100%" 
+                        height="90%"
+                        frameborder="0"
+                        allow="camera; microphone; fullscreen; display-capture"
+                        class="rounded-lg">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="w-80 p-4">
+            <div class="bg-white rounded-lg shadow h-full">
+                <div class="p-4 border-b">
+                    <h3 class="text-lg font-medium text-gray-900">Circle Controls</h3>
+                </div>
+                
+                <div class="p-4 space-y-4">
+                    <!-- Circle Info -->
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <h4 class="font-medium text-gray-900 mb-2">Circle Information</h4>
+                        <div class="text-sm text-gray-600 space-y-1">
+                            <p><strong>Name:</strong> {{ circle.name }}</p>
+                            <p><strong>ID:</strong> {{ circle.id }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="text-green-600 font-medium">Active</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Facilitator Controls -->
+                    {% if is_facilitator %}
+                    <div class="bg-purple-50 rounded-lg p-3">
+                        <h4 class="font-medium text-purple-900 mb-3">Facilitator Controls</h4>
+                        <div class="space-y-2">
+                            <button 
+                                onclick="refreshJitsi()"
+                                class="w-full bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition duration-200">
+                                Refresh Video
+                            </button>
+                            <button 
+                                onclick="copyRoomLink()"
+                                class="w-full bg-indigo-600 text-white py-2 px-3 rounded text-sm hover:bg-indigo-700 transition duration-200">
+                                Copy Room Link
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Participant Info -->
+                    <div class="bg-blue-50 rounded-lg p-3">
+                        <h4 class="font-medium text-blue-900 mb-2">Your Session</h4>
+                        <div class="text-sm text-blue-700 space-y-1">
+                            <p><strong>Role:</strong> {{ user_role|title }}</p>
+                            <p><strong>Name:</strong> {{ user_name }}</p>
+                            <p><strong>Joined:</strong> <span id="joinTime">Just now</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="space-y-2">
+                        <button 
+                            onclick="toggleFullscreen()"
+                            class="w-full bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700 transition duration-200">
+                            Toggle Fullscreen
+                        </button>
+                        <button 
+                            onclick="openJitsiNewTab()"
+                            class="w-full bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition duration-200">
+                            Open in New Tab
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set join time
+        document.getElementById('joinTime').textContent = new Date().toLocaleTimeString();
+
+        function refreshJitsi() {
+            const frame = document.getElementById('jitsiFrame');
+            frame.src = frame.src;
+        }
+
+        function copyRoomLink() {
+            const roomUrl = `https://{{ jitsi_domain }}/{{ jitsi_room }}`;
+            navigator.clipboard.writeText(roomUrl).then(() => {
+                alert('Room link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy this room link:', roomUrl);
+            });
+        }
+
+        function toggleFullscreen() {
+            const frame = document.getElementById('jitsiFrame');
+            if (frame.requestFullscreen) {
+                frame.requestFullscreen();
+            } else if (frame.webkitRequestFullscreen) {
+                frame.webkitRequestFullscreen();
+            } else if (frame.msRequestFullscreen) {
+                frame.msRequestFullscreen();
+            }
+        }
+
+        function openJitsiNewTab() {
+            const roomUrl = `https://{{ jitsi_domain }}/{{ jitsi_room }}`;
+            window.open(roomUrl, '_blank');
+        }
+
+        // Auto-refresh iframe if connection issues
+        let refreshCount = 0;
+        const maxRefreshes = 3;
+
+        document.getElementById('jitsiFrame').addEventListener('error', function() {
+            if (refreshCount < maxRefreshes) {
+                console.log('Jitsi frame error, attempting refresh...');
+                setTimeout(() => {
+                    refreshJitsi();
+                    refreshCount++;
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
