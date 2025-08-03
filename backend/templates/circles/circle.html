@@ -34,23 +34,55 @@
     <div class="flex-1 flex">
         <!-- Video Area -->
         <div class="flex-1 p-4">
-            <div class="bg-white rounded-lg shadow h-full">
+            <!-- DEBUG: Always show message section to debug -->
+            <div class="bg-white rounded-lg shadow mb-4 border-l-4 border-indigo-500">
+                <div class="p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Circle Message (DEBUG)</h3>
+                    <div id="circle-message-content" class="text-sm text-gray-600">
+                        <strong>Message content:</strong> "{{ circle.message }}"<br>
+                        <strong>Message length:</strong> {{ circle.message|length }}<br>
+                        <strong>Message exists:</strong> {{ circle.message|yesno:"YES,NO" }}
+                    </div>
+                    <!-- Hidden input to store circle ID for JavaScript -->
+                    <input type="hidden" id="circle-id" value="{{ circle.id }}">
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow mb-4">
                 <div class="p-4 border-b">
                     <h2 class="text-lg font-medium text-gray-900">Video Conference</h2>
                     <p class="text-sm text-gray-500">Room: {{ jitsi_room }}</p>
                 </div>
-                <div class="p-4 h-full">
+                <div class="p-4">
                     <iframe 
                         id="jitsiFrame"
                         src="https://{{ jitsi_domain }}/{{ jitsi_room }}"
                         width="100%" 
-                        height="90%"
+                        height="75%"
                         frameborder="0"
                         allow="camera; microphone; fullscreen; display-capture"
                         class="rounded-lg">
                     </iframe>
                 </div>
             </div>
+            
+            <!-- Participant Message Display -->
+            {% if circle.message and not is_facilitator %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg shadow mb-4">
+                <div class="p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <div class="mt-2 text-blue-700 whitespace-pre-wrap">{{ circle.message|safe }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Control Panel -->
@@ -76,8 +108,27 @@
                     <!-- Facilitator Controls -->
                     {% if is_facilitator %}
                     <div class="bg-purple-50 rounded-lg p-3">
-                        <h4 class="font-medium text-purple-900 mb-3">Facilitator Controls</h4>
-                        <div class="space-y-2">
+                        <div class="space-y-3">
+                            <!-- Circle Message Management -->
+                            <div class="bg-white rounded border p-3">
+                                <h5 class="text-sm font-medium text-gray-900 mb-2">Circle Message</h5>
+                                <textarea 
+                                    id="circleMessageInput"
+                                    placeholder="Enter a message for all circle visitors..."
+                                    class="w-full p-2 border border-gray-300 rounded text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    rows="3"
+                                    maxlength="1000">{{ circle.message }}</textarea>
+                                <div class="flex justify-between items-center mt-2">
+                                    <span id="messageCharCount" class="text-xs text-gray-500">{{ circle.message|length }}/1000</span>
+                                    <button 
+                                        onclick="updateCircleMessage()"
+                                        id="updateMessageBtn"
+                                        class="bg-purple-600 text-white py-1 px-3 rounded text-xs hover:bg-purple-700 transition duration-200">
+                                        Update Message
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <button 
                                 onclick="refreshJitsi()"
                                 class="w-full bg-purple-600 text-white py-2 px-3 rounded text-sm hover:bg-purple-700 transition duration-200">
@@ -152,6 +203,87 @@
         function openJitsiNewTab() {
             const roomUrl = `https://{{ jitsi_domain }}/{{ jitsi_room }}`;
             window.open(roomUrl, '_blank');
+        }
+
+        function updateCircleMessage() {
+            const messageInput = document.getElementById('circleMessageInput');
+            const message = messageInput.value.trim();
+            const charCount = message.length;
+            const charCountSpan = document.getElementById('messageCharCount');
+            charCountSpan.textContent = `${charCount}/1000`;
+            
+            // Get circle ID from hidden input
+            const circleId = document.getElementById('circle-id').value;
+            
+            // Call facilitator API to update message
+            fetch('/facilitator-api/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    action: 'update_message',
+                    circle_id: circleId,
+                    message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the message display area
+                    const messageContent = document.getElementById('circle-message-content');
+                    if (messageContent) {
+                        // Update the debug display
+                        messageContent.innerHTML = `<strong>Message content:</strong> "${message}"<br>
+                            <strong>Message length:</strong> ${message.length}<br>
+                            <strong>Message exists:</strong> ${message ? 'YES' : 'NO'}`;
+                        
+                        // Show success notification
+                        showNotification('Message updated successfully!', 'success');
+                    }
+                } else {
+                    showNotification('Error updating message: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating message:', error);
+                showNotification('Error updating message. Please try again.', 'error');
+            });
+        }
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Helper function to show notifications
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            notification.textContent = message;
+            
+            // Add to document
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
         }
 
         // Auto-refresh iframe if connection issues

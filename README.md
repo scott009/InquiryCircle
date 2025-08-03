@@ -1,9 +1,24 @@
-<!-- Document Version: 1.0 -->
-<!-- Last Updated: 2025-08-01 -->
+<!-- Document Version: 1.1.0 -->
+<!-- Last Updated: 2025-08-02 -->
 
-# InquiryCircle v1.0 - Human Readable Documentation
+# InquiryCircle v1.1.0 - Human Readable Documentation
 
-*Document: `readme1.0.md`*
+*Document: `README.md`*
+
+## What's New in v1.1.0
+
+### CircleMessage1 Feature
+- **Purpose**: Allow circle facilitators to set an HTML message displayed to all visitors of a circle
+- **Key Features**:
+  - Facilitators can enter and approve messages via the control panel
+  - Messages are displayed to all circle visitors in a clean, readable house style
+  - Uses VueJS and Tailwind CSS for consistent UI
+  - Messages are persisted in storage and displayed outside the debug window
+
+### UI Improvements
+- Jitsi video frame resized to 75% of original height
+- Participant message box moved below Jitsi window for better layout
+- Removed "Message from Circle Facilitator" header for cleaner display
 
 ## System Overview
 - **Type**: Web-based video conferencing platform
@@ -27,15 +42,18 @@
   - Role-based access control (Facilitator/Participant)
   - Jitsi Meet integration
   - Key-based authentication
+  - Facilitator message system (new in v1.1.0)
 
 ### 2. Role System
 - **Facilitators**:
   - Elevated privileges
   - Meeting controls
   - Participant management
+  - Message management (new in v1.1.0)
 - **Participants**:
   - Standard access
   - Basic meeting functions
+  - View facilitator messages (new in v1.1.0)
 
 ### 3. Technical Architecture
 ```
@@ -58,76 +76,43 @@ InquiryCircle/
 ### Backend Configuration
 - `backend/.env` - Environment variables (copy from `.env.example`)
   ```
-  DEBUG=True
   SECRET_KEY=your-secret-key
-  JITSI_APP_ID=your-jitsi-app-id
+  DEBUG=True
+  ALLOWED_HOSTS=localhost,127.0.0.1
+  JITSI_DOMAIN=meet.jit.si
   ```
 
-### Frontend Configuration
-- `frontend/.env` - Frontend environment variables
-  ```
-  VUE_APP_API_URL=http://localhost:8000
-  VUE_APP_JITSI_DOMAIN=meet.jit.si
-  ```
+### Circle Message Feature (New in v1.1.0)
+- Messages are stored in `backend/data/circles.json`
+- Facilitators can update messages via the control panel
+- Messages are sanitized for security before display
 
-## Setup Instructions
+## Deployment Notes
 
-### Backend (Django)
-1. Environment setup:
-   ```bash
-   cd backend
-   python -m venv venv
-   # Windows: venv\Scripts\activate
-   # Unix/Mac: source venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env
-   ```
+### Version 1.1.0 Changes
+- Updated `circle.html` template with new UI layout
+- Added message persistence logic in `storage.py`
+- Enhanced facilitator API in `views.py`
+- Server restart required after template changes
 
-2. Run development server:
-   ```bash
-   python manage.py migrate
-   python manage.py runserver
-   ```
+## Changelog
 
-### Frontend (Vue.js)
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### v1.1.0 (2025-08-02)
+- **NEW**: CircleMessage1 feature allowing facilitators to set messages for participants
+- **IMPROVED**: UI layout with resized Jitsi frame and repositioned message display
+- **IMPROVED**: Cleaner message display without header text
+- **FIXED**: Message persistence issues in backend storage
 
-## Data Model
+### v1.0 (2025-08-01)
+- Initial release
+- Basic circle management with role-based access
+- Jitsi Meet integration
+- Key-based authentication system
 
-### Circle
-- `id`: Unique identifier
-- `name`: Display name
-- `jitsi_room`: Jitsi room name
-- `facilitator_key`: Secret key for facilitators
-- `participant_key`: Secret key for participants
-
-### Session
-- `circle`: ForeignKey to Circle
-- `start_time`: Session start timestamp
-- `end_time`: Session end timestamp
-- `active`: Boolean status
-
-## API Endpoints
-
-### Circle Management
-- `GET /api/circles/`: List all circles
-- `POST /api/circles/`: Create new circle
-- `GET /api/circles/<id>/`: Get circle details
-- `POST /api/circles/<id>/join/`: Join a circle
-
-## Security Considerations
-- All keys should be securely hashed
-- Use HTTPS in production
-- Regular security audits recommended
-
-## Demo Credentials
-- Admin: `admin-master-key`
-- Facilitator: `facilitator-demo` (for demo-circle)
-- Participant: `participant-demo` (for demo-circle)
+## Version Information
+- **Version**: 1.1.0
+- **Last Updated**: 2025-08-02
+- **Compatibility**: Python 3.8+, Node.js 14+
 
 ## File Structure
 ```
@@ -175,12 +160,10 @@ InquiryCircle/
 │
 ├── deployment/                      # Deployment scripts
 ├── docs/                            # Documentation files
+├── docfig/                          # Docfig documentation
+│   ├── InquiryCircle1.0.Blackboard.md  # v1.0 Blackboard
+│   ├── InquiryCircle1.1.Blackboard.md  # v1.1 Blackboard
+│   └── readme1.1.md                 # v1.1 Human-readable docs
 ├── .gitignore                       # Git ignore rules
-├── README.md                        # Main project documentation
-└── readme1.0.md                     # Human-readable documentation
-```
-
-## Version Information
-- **Version**: 1.0
-- **Last Updated**: 2025-07-31
-- **Compatibility**: Python 3.8+, Node.js 14+
+├── README.md                        # Main project documentation (this document)
+└── readme1.1.md                     # Human-readable documentation
