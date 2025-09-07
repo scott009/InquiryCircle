@@ -76,6 +76,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { apiService } from '@/services/api';
 import jitsiService, { JitsiService } from '../../services/jitsi';
 
 interface Props {
@@ -98,17 +100,48 @@ const emit = defineEmits<{
 }>();
 
 // Reactive state
+const authStore = useAuthStore();
 const displayName = ref(props.userDisplayName || '');
 const isJoined = ref(false);
 const isLoading = ref(false);
 const participantCount = ref(0);
 const error = ref('');
 const jitsiApi = ref(null);
+const currentRoom = ref(null);
+const participantId = ref(`user-${Date.now()}-${Math.random().toString(36).substring(7)}`);
 
 // Computed room name
-const roomName = computed(() => 
-  JitsiService.generateRoomName(props.circleId, props.sessionId)
-);
+const roomName = computed(() => {
+  return currentRoom.value?.room_name || 
+         JitsiService.generateRoomName(props.circleId, props.sessionId);
+});
+
+// Get or create room configuration
+const getRoomConfig = async () => {
+  try {
+    // First try to get existing room
+    const roomConfig = await apiService.getRoomConfig(parseInt(props.circleId));
+    currentRoom.value = roomConfig;
+    return roomConfig;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      // No room exists, create one if user is facilitator
+      if (authStore.isFacilitator) {
+        const newRoom = await apiService.createRoom({
+          circle_id: parseInt(props.circleId),
+          enable_lobby: true,
+          enable_recording: false,
+          max_participants: 20
+        });
+        currentRoom.value = newRoom;
+        return newRoom;
+      } else {
+        throw new Error('No active room found. Please ask the facilitator to start the video conference.');
+      }
+    }
+    throw error;
+  }
+};
 
 // Join conference
 const joinConference = async () => {
@@ -121,21 +154,36 @@ const joinConference = async () => {
     isLoading.value = true;
     error.value = '';
 
+    // Get room configuration from backend
+    const roomConfig = await getRoomConfig();
+    
     const api = await jitsiService.initializeConference({
-      roomName: roomName.value,
+      roomName: roomConfig.room_name,
       displayName: displayName.value.trim(),
-      subject: props.circleTitle
+      subject: roomConfig.config.subject || props.circleTitle,
+      password: roomConfig.room_password,
+      moderator: authStore.isFacilitator
     }, 'jitsi-conference');
 
     jitsiApi.value = api;
+
+    // Notify backend of join
+    try {
+      await apiService.joinRoom(roomConfig.room_id, {
+        participant_id: participantId.value,
+        display_name: displayName.value.trim()
+      });
+    } catch (joinError) {
+      console.warn('Failed to notify backend of room join:', joinError);
+    }
 
     // Set up event listeners
     setupEventListeners();
 
     isJoined.value = true;
     
-  } catch (err) {
-    error.value = 'Failed to join conference. Please try again.';
+  } catch (err: any) {
+    error.value = err.message || 'Failed to join conference. Please try again.';
     console.error('Conference join error:', err);
   } finally {
     isLoading.value = false;
@@ -143,8 +191,19 @@ const joinConference = async () => {
 };
 
 // Leave conference
-const leaveConference = () => {
+const leaveConference = async () => {
   if (jitsiApi.value) {
+    // Notify backend of leave
+    if (currentRoom.value) {
+      try {
+        await apiService.leaveRoom(currentRoom.value.room_id, {
+          participant_id: participantId.value
+        });
+      } catch (leaveError) {
+        console.warn('Failed to notify backend of room leave:', leaveError);
+      }
+    }
+    
     jitsiService.hangup();
   }
 };

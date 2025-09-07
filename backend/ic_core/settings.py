@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'authentication',
     'facilitator_messages',
     'health',
+    'jitsi_rooms',
 ]
 
 MIDDLEWARE = [

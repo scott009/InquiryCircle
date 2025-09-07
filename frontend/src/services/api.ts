@@ -95,6 +95,45 @@ export interface MessagesResponse {
   messages: Message[]
 }
 
+// Jitsi Room types
+export interface JitsiRoomConfig {
+  roomName: string
+  password?: string
+  moderator?: boolean
+  subject?: string
+  maxParticipants?: number
+  enableLobby?: boolean
+  enableRecording?: boolean
+}
+
+export interface JitsiRoom {
+  room_id: number
+  room_name: string
+  room_password: string
+  status: 'created' | 'active' | 'ended' | 'expired'
+  config: JitsiRoomConfig
+  participant_count: number
+  max_participants: number
+  created_at: string
+  expires_at?: string
+}
+
+export interface CreateRoomRequest {
+  circle_id: number
+  enable_lobby?: boolean
+  enable_recording?: boolean
+  max_participants?: number
+}
+
+export interface JoinRoomRequest {
+  participant_id: string
+  display_name: string
+}
+
+export interface LeaveRoomRequest {
+  participant_id: string
+}
+
 // API Service Class
 export class ApiService {
   private accessKey: string | null = null
@@ -167,6 +206,32 @@ export class ApiService {
 
   async sendMessage(messageData: CreateMessageRequest): Promise<Message> {
     const response = await apiClient.post('/messages/', messageData)
+    return response.data
+  }
+
+  // Jitsi Room Management
+  async createRoom(roomData: CreateRoomRequest): Promise<JitsiRoom> {
+    const response = await apiClient.post('/rooms/create/', roomData)
+    return response.data
+  }
+
+  async getRoomConfig(circleId: number): Promise<JitsiRoom> {
+    const response = await apiClient.get(`/rooms/circle/${circleId}/`)
+    return response.data
+  }
+
+  async joinRoom(roomId: number, joinData: JoinRoomRequest): Promise<any> {
+    const response = await apiClient.post(`/rooms/${roomId}/join/`, joinData)
+    return response.data
+  }
+
+  async leaveRoom(roomId: number, leaveData: LeaveRoomRequest): Promise<any> {
+    const response = await apiClient.post(`/rooms/${roomId}/leave/`, leaveData)
+    return response.data
+  }
+
+  async getRoomStats(roomId: number): Promise<any> {
+    const response = await apiClient.get(`/rooms/${roomId}/stats/`)
     return response.data
   }
 

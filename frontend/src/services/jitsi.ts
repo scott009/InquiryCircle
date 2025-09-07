@@ -7,6 +7,9 @@ interface JitsiMeetConfig {
   email?: string;
   avatarUrl?: string;
   subject?: string;
+  password?: string;
+  moderator?: boolean;
+  jwt?: string;
 }
 
 interface JitsiMeetOptions {
@@ -39,6 +42,14 @@ declare global {
 class JitsiService {
   private api: any = null;
   private isScriptLoaded = false;
+  private currentRoom: string | null = null;
+  private jitsiDomain = 'meet.jit.si'; // Can be configured for custom domains
+
+  // Configure Jitsi domain (for custom instances)
+  setJitsiDomain(domain: string): void {
+    this.jitsiDomain = domain;
+    this.isScriptLoaded = false; // Force reload script from new domain
+  }
 
   // Load Jitsi Meet External API script
   async loadJitsiScript(): Promise<void> {
@@ -46,7 +57,7 @@ class JitsiService {
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://meet.jit.si/external_api.js';
+      script.src = `https://${this.jitsiDomain}/external_api.js`;
       script.async = true;
       script.onload = () => {
         this.isScriptLoaded = true;
@@ -72,21 +83,43 @@ class JitsiService {
         width: '100%',
         height: '500px',
         parentNode: container,
+        jwt: config.jwt, // JWT token for authentication
         configOverwrite: {
           prejoinPageEnabled: false,
           startWithAudioMuted: true,
           startWithVideoMuted: false,
           enableWelcomePage: false,
           enableClosePage: false,
+          requireDisplayName: true,
+          disableInviteFunctions: true, // Disable public invite links
+          enableLobbyChat: false,
+          enableInsecureRoomNameWarning: false,
+          // Room security settings
+          ...(config.password && { 
+            roomPassword: config.password 
+          }),
+          // Moderator settings
+          ...(config.moderator && {
+            startAudioMuted: 999, // Mute all participants except moderator
+            startVideoMuted: 999,
+            enableUserRolesBasedOnToken: true
+          })
         },
         interfaceConfigOverwrite: {
+          // Simplified toolbar for inquiry circles
           TOOLBAR_BUTTONS: [
-            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-            'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-            'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-            'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
-          ]
+            'microphone', 'camera', 'desktop', 'fullscreen',
+            'hangup', 'chat', 'raisehand', 'tileview',
+            ...(config.moderator ? ['mute-everyone', 'invite'] : [])
+          ],
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_BRAND_WATERMARK: false,
+          BRAND_WATERMARK_LINK: '',
+          DEFAULT_BACKGROUND: '#1e3a8a', // Blue background
+          DISABLE_VIDEO_BACKGROUND: false,
+          SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+          SHOW_CHROME_EXTENSION_BANNER: false
         },
         userInfo: {
           displayName: config.displayName,
@@ -101,7 +134,11 @@ class JitsiService {
         };
       }
 
-      this.api = new window.JitsiMeetExternalAPI('meet.jit.si', options);
+      this.api = new window.JitsiMeetExternalAPI(this.jitsiDomain, options);
+      this.currentRoom = config.roomName;
+      
+      // Set up basic event handlers
+      this.setupBasicEventHandlers();
       
       return this.api;
     } catch (error) {
@@ -166,18 +203,118 @@ class JitsiService {
     }
   }
 
+  // Setup basic event handlers
+  private setupBasicEventHandlers(): void {
+    if (!this.api) return;
+
+    this.api.addEventListener('readyToClose', () => {
+      console.log('Jitsi conference ready to close');
+      this.currentRoom = null;
+    });
+
+    this.api.addEventListener('participantRoleChanged', (event: any) => {
+      console.log('Participant role changed:', event);
+    });
+
+    this.api.addEventListener('passwordRequired', () => {
+      console.log('Password required for room');
+    });
+  }
+
+  // Room management methods
+  getCurrentRoom(): string | null {
+    return this.currentRoom;
+  }
+
+  isConferenceActive(): boolean {
+    return this.api !== null && this.currentRoom !== null;
+  }
+
+  // Security methods
+  setPassword(password: string): void {
+    if (this.api) {
+      this.api.executeCommand('password', password);
+    }
+  }
+
+  lockRoom(): void {
+    if (this.api) {
+      this.api.executeCommand('lockRoom', true);
+    }
+  }
+
+  unlockRoom(): void {
+    if (this.api) {
+      this.api.executeCommand('lockRoom', false);
+    }
+  }
+
+  // Moderator controls
+  muteParticipant(participantId: string): void {
+    if (this.api) {
+      this.api.executeCommand('muteParticipant', participantId);
+    }
+  }
+
+  muteEveryone(): void {
+    if (this.api) {
+      this.api.executeCommand('muteEveryone');
+    }
+  }
+
+  kickParticipant(participantId: string): void {
+    if (this.api) {
+      this.api.executeCommand('kickParticipant', participantId);
+    }
+  }
+
+  // Waiting room controls
+  admitParticipant(participantId: string): void {
+    if (this.api) {
+      this.api.executeCommand('grantModerator', participantId);
+    }
+  }
+
+  // Recording controls
+  startRecording(): void {
+    if (this.api) {
+      this.api.executeCommand('startRecording', {
+        mode: 'file'
+      });
+    }
+  }
+
+  stopRecording(): void {
+    if (this.api) {
+      this.api.executeCommand('stopRecording', 'file');
+    }
+  }
+
   // Cleanup
   dispose(): void {
     if (this.api) {
       this.api.dispose();
       this.api = null;
+      this.currentRoom = null;
     }
   }
 
-  // Generate room names
+  // Generate secure room names
   static generateRoomName(circleId: string, sessionId?: string): string {
-    const base = `inquirycircle-${circleId}`;
-    return sessionId ? `${base}-${sessionId}` : base;
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const base = `ic-${circleId}-${randomSuffix}`;
+    return sessionId ? `${base}-${sessionId.substring(0, 8)}` : `${base}-${timestamp.toString().substring(-6)}`;
+  }
+
+  // Generate room password
+  static generateRoomPassword(): string {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  }
+
+  // Validate room name format
+  static isValidRoomName(roomName: string): boolean {
+    return /^ic-[a-zA-Z0-9\-_]+$/.test(roomName);
   }
 }
 
