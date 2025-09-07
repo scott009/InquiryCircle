@@ -1,15 +1,52 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios'
+import axios from 'axios'
 
 // API client configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 // Create axios instance
-const apiClient: AxiosInstance = axios.create({
+const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// Request interceptor for logging and auth
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for logging and error handling
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
+    
+    // Enhance error with user-friendly messages
+    if (error.response?.status === 401) {
+      console.warn('🔐 Authentication required or invalid key');
+    } else if (error.response?.status === 403) {
+      console.warn('🚫 Permission denied');
+    } else if (error.response?.status === 404) {
+      console.warn('📭 Resource not found');
+    } else if (error.response?.status >= 500) {
+      console.warn('🔥 Server error');
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // Auth types
 export interface AuthResponse {
@@ -77,7 +114,7 @@ export class ApiService {
 
   // Health check
   async healthCheck(): Promise<{ status: string; database: string }> {
-    const response: AxiosResponse = await apiClient.get('/health/')
+    const response = await apiClient.get('/health/')
     return response.data
   }
 
@@ -89,7 +126,7 @@ export class ApiService {
     }
 
     try {
-      const response: AxiosResponse<AuthResponse> = await apiClient.post(
+      const response = await apiClient.post(
         '/auth/verify-key/',
         {},
         {
@@ -109,26 +146,72 @@ export class ApiService {
 
   // Circles
   async getCircles(): Promise<CirclesResponse> {
-    const response: AxiosResponse<CirclesResponse> = await apiClient.get('/circles/')
+    const response = await apiClient.get('/circles/')
     return response.data
   }
 
   async createCircle(circleData: CreateCircleRequest): Promise<Circle> {
-    const response: AxiosResponse<Circle> = await apiClient.post('/circles/', circleData)
+    const response = await apiClient.post('/circles/', circleData)
     return response.data
   }
 
   // Messages
   async getMessages(circleId: number): Promise<MessagesResponse> {
-    const response: AxiosResponse<MessagesResponse> = await apiClient.get(
+    const response = await apiClient.get(
       `/messages/?circle_id=${circleId}`
     )
     return response.data
   }
 
   async sendMessage(messageData: CreateMessageRequest): Promise<Message> {
-    const response: AxiosResponse<Message> = await apiClient.post('/messages/', messageData)
+    const response = await apiClient.post('/messages/', messageData)
     return response.data
+  }
+
+  // Connection testing
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.healthCheck()
+      console.log('✅ API connection successful')
+      return true
+    } catch (error) {
+      console.error('❌ API connection failed:', error)
+      return false
+    }
+  }
+
+  // Error handling helper
+  isAxiosError(error: any): boolean {
+    return error && error.isAxiosError === true
+  }
+
+  // Get user-friendly error message
+  getErrorMessage(error: any): string {
+    if (this.isAxiosError(error)) {
+      if (error.response?.data?.message) {
+        return error.response.data.message
+      }
+      if (error.response?.data?.error) {
+        return error.response.data.error
+      }
+      if (error.response?.status === 401) {
+        return 'Authentication required. Please check your access key.'
+      }
+      if (error.response?.status === 403) {
+        return 'Permission denied. You do not have access to this resource.'
+      }
+      if (error.response?.status === 404) {
+        return 'Resource not found.'
+      }
+      if (error.response?.status >= 500) {
+        return 'Server error. Please try again later.'
+      }
+      if (error.code === 'ECONNREFUSED') {
+        return 'Cannot connect to server. Please ensure the backend is running.'
+      }
+      return error.message || 'An unexpected error occurred'
+    }
+    return error?.message || 'An unknown error occurred'
   }
 }
 
