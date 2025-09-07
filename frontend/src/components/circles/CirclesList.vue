@@ -1,31 +1,31 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-white shadow">
+    <!-- Page Header -->
+    <div class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                <span class="text-sm font-medium text-white">IC</span>
-              </div>
+        <div class="py-6">
+          <div class="md:flex md:items-center md:justify-between">
+            <div class="flex-1 min-w-0">
+              <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate">
+                {{ authStore.isFacilitator ? 'Manage Circles' : 'My Circles' }}
+              </h1>
+              <p class="mt-1 text-sm text-gray-500">
+                {{ authStore.isFacilitator 
+                  ? 'Create and manage your InquiryCircles' 
+                  : 'Join available circles and participate in discussions' }}
+              </p>
             </div>
-            <div class="ml-4">
-              <h1 class="text-lg font-medium text-gray-900">My Circles</h1>
-              <p class="text-sm text-gray-500">Participant view</p>
+            <div v-if="authStore.isFacilitator" class="mt-4 md:mt-0 md:ml-4">
+              <button
+                @click="showCreateModal = true"
+                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create Circle
+              </button>
             </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-500">{{ authStore.accessKey }}</span>
-            <button
-              @click="logout"
-              class="text-gray-400 hover:text-gray-500"
-            >
-              <span class="sr-only">Sign out</span>
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@
                     'bg-green-600 hover:bg-green-700 text-white': circle.status === 'active',
                     'bg-gray-300 text-gray-500 cursor-not-allowed': circle.status !== 'active'
                   }"
-                  class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   :disabled="circle.status !== 'active'"
                 >
                   {{ circle.status === 'active' ? 'Join' : 'Inactive' }}
@@ -112,7 +112,7 @@
           <div v-if="authStore.isFacilitator" class="mt-6">
             <router-link
               to="/dashboard"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Go to Dashboard
             </router-link>
@@ -120,6 +120,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Circle Modal -->
+    <CreateCircleModal
+      v-if="showCreateModal"
+      @close="showCreateModal = false"
+      @created="onCircleCreated"
+    />
   </div>
 </template>
 
@@ -128,12 +135,14 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { apiService, type Circle } from '@/services/api'
+import CreateCircleModal from '../dashboard/CreateCircleModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const circles = ref<Circle[]>([])
 const isLoading = ref(true)
+const showCreateModal = ref(false)
 
 const loadCircles = async () => {
   isLoading.value = true
@@ -153,9 +162,9 @@ const joinCircle = (circle: Circle) => {
   }
 }
 
-const logout = () => {
-  authStore.logout()
-  router.push('/login')
+const onCircleCreated = (newCircle: Circle) => {
+  circles.value.unshift(newCircle) // Add to beginning of list
+  showCreateModal.value = false
 }
 
 const formatDate = (dateString: string) => {

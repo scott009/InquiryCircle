@@ -35,6 +35,12 @@ const router = createRouter({
       name: 'circles',
       component: () => import('../components/circles/CirclesList.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/circle/:id',
+      name: 'circle-view',
+      component: () => import('../components/circles/CircleView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

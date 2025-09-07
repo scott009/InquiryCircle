@@ -1,36 +1,22 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-white shadow">
+    <!-- Page Header -->
+    <div class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-6">
+        <div class="py-6">
           <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <button
-                @click="goBack"
-                class="mr-4 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-              >
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            </div>
-            <div>
-              <h1 class="text-lg font-medium text-gray-900">{{ circle?.name || 'Loading...' }}</h1>
-              <p class="text-sm text-gray-500">{{ circle?.description || 'No description' }}</p>
-            </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-500">{{ authStore.accessKey }}</span>
             <button
-              @click="logout"
-              class="text-gray-400 hover:text-gray-500"
+              @click="goBack"
+              class="mr-4 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
             >
-              <span class="sr-only">Sign out</span>
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            <div class="flex-1">
+              <h1 class="text-2xl font-bold text-gray-900">{{ circle?.name || 'Loading...' }}</h1>
+              <p class="text-sm text-gray-500 mt-1">{{ circle?.description || 'No description' }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -60,7 +46,7 @@
                   <div class="mt-6">
                     <button
                       @click="joinVideoCall"
-                      class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -133,13 +119,13 @@
                     v-model="newMessage"
                     type="text"
                     placeholder="Type a message..."
-                    class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     @keypress.enter="sendMessage"
                   >
                   <button
                     @click="sendMessage"
                     :disabled="!newMessage.trim()"
-                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Send
                   </button>
@@ -238,10 +224,6 @@ const goBack = () => {
   router.push('/circles')
 }
 
-const logout = () => {
-  authStore.logout()
-  router.push('/login')
-}
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return 'Unknown'
