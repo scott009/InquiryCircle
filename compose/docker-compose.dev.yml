@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ../backend
+    container_name: ic-backend
+    restart: unless-stopped
+    environment:
+      - DJANGO_SETTINGS_MODULE=ic_core.settings
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-key-12345}
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+    volumes:
+      - ../backend/db:/app/db
+      - ../backend:/app  # For development - live code reload
+    ports:
+      - "8000:8000"  # Expose backend directly for development
+    networks:
+      - inquirycircle_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # Note: Caddy and frontend containers will be added in later phases
+  # For now, we're testing backend container only
+
+networks:
+  inquirycircle_network:
+    driver: bridge
