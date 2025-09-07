@@ -81,12 +81,14 @@ export interface Message {
   content: string
   message_type: 'text' | 'html' | 'system'
   sent_at: string
+  sender_role?: string
+  timestamp?: string
 }
 
 export interface CreateMessageRequest {
   circle_id: number
   content: string
-  message_type?: 'text' | 'html'
+  message_type?: 'text' | 'html' | 'system'
 }
 
 export interface MessagesResponse {

@@ -131,15 +131,15 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { apiService } from '../services/api';
+import { apiService, type AuthResponse, type CirclesResponse } from '../services/api';
 
 // Reactive state
 const isLoading = ref(false);
 const connectionStatus = ref<boolean | null>(null);
-const healthData = ref(null);
+const healthData = ref<{ status: string; database: string } | null>(null);
 const testKey = ref('');
-const keyVerificationResult = ref(null);
-const circles = ref(null);
+const keyVerificationResult = ref<AuthResponse | null>(null);
+const circles = ref<CirclesResponse | null>(null);
 const error = ref('');
 
 // Test connection

@@ -66,7 +66,7 @@
                       'text-yellow-600': circle?.status === 'inactive',
                       'text-gray-600': circle?.status === 'ended'
                     }">
-                      {{ circle?.status?.charAt(0).toUpperCase() + circle?.status?.slice(1) }}
+                      {{ circle?.status ? circle.status.charAt(0).toUpperCase() + circle.status.slice(1) : 'Unknown' }}
                     </span>
                   </dd>
                 </div>
@@ -106,9 +106,9 @@
                   No messages yet
                 </div>
                 <div v-for="message in messages" :key="message.id" class="border-b border-gray-200 pb-2">
-                  <div class="text-sm font-medium text-gray-900">{{ message.sender_role }}</div>
+                  <div class="text-sm font-medium text-gray-900">{{ message.sender_role || 'User' }}</div>
                   <div class="text-sm text-gray-600 mt-1">{{ message.content }}</div>
-                  <div class="text-xs text-gray-400 mt-1">{{ formatDate(message.timestamp) }}</div>
+                  <div class="text-xs text-gray-400 mt-1">{{ formatDate(message.timestamp || message.sent_at) }}</div>
                 </div>
               </div>
 
@@ -174,7 +174,7 @@ const loadCircle = async () => {
   try {
     const circleId = route.params.id as string
     const response = await apiService.getCircles()
-    circle.value = response.circles.find(c => c.id.toString() === circleId) || null
+    circle.value = response.circles.find((c: any) => c.id.toString() === circleId) || null
     
     if (!circle.value) {
       router.push('/circles')
@@ -209,7 +209,10 @@ const sendMessage = async () => {
   if (!newMessage.value.trim() || !circle.value) return
 
   try {
-    await apiService.sendMessage(circle.value.id, newMessage.value.trim())
+    await apiService.sendMessage({
+      circle_id: circle.value.id,
+      content: newMessage.value.trim()
+    })
     newMessage.value = ''
     await loadMessages() // Refresh messages
   } catch (error) {
