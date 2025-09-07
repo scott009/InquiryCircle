@@ -41,6 +41,11 @@ const router = createRouter({
       name: 'circle-view',
       component: () => import('../components/circles/CircleView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/test-video-integration',
+      name: 'test-video-integration',
+      component: () => import('../views/VideoTestDemo.vue')
     }
   ]
 })

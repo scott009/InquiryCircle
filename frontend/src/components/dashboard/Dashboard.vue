@@ -4,6 +4,19 @@
     <p class="text-gray-600 mb-6">Vue 3 + TypeScript + Tailwind CSS application is working!</p>
     
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div class="lg:col-span-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-white mb-4">
+        <h3 class="text-lg font-semibold mb-2">🎉 Video Conferencing Integration Complete!</h3>
+        <p class="text-blue-100 mb-3">Test the complete video conferencing workflow integrated with circle management</p>
+        <router-link 
+          to="/test-video-integration" 
+          class="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+        >
+          Test Video Integration Demo
+        </router-link>
+      </div>
+    </div>
+    
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 class="text-lg font-semibold text-blue-900 mb-2">Test Jitsi Integration</h3>
         <p class="text-blue-700 mb-3">Test the video conferencing functionality</p>

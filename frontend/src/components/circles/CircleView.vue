@@ -33,29 +33,18 @@
                 Video Conference
               </h3>
               
-              <!-- Placeholder for Jitsi integration -->
-              <div class="bg-gray-100 rounded-lg h-96 flex items-center justify-center">
-                <div class="text-center">
-                  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <h3 class="mt-2 text-sm font-medium text-gray-900">Video Conference</h3>
-                  <p class="mt-1 text-sm text-gray-500">
-                    Jitsi Meet integration will be available here
-                  </p>
-                  <div class="mt-6">
-                    <button
-                      @click="joinVideoCall"
-                      class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Join Video Call
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <!-- Jitsi Video Conference Component -->
+              <VideoConference
+                v-if="circle"
+                :circleId="circle.id.toString()"
+                :sessionId="currentSessionId"
+                :circleTitle="circle.name"
+                :userDisplayName="userDisplayName"
+                @joined="onVideoJoined"
+                @left="onVideoLeft"
+                @participantJoined="onParticipantJoined"
+                @participantLeft="onParticipantLeft"
+              />
             </div>
           </div>
         </div>
@@ -85,9 +74,20 @@
                   <dt class="text-sm font-medium text-gray-500">Created</dt>
                   <dd class="mt-1 text-sm text-gray-900">{{ formatDate(circle?.created_at) }}</dd>
                 </div>
-                <div v-if="participants.length > 0">
+                <div>
                   <dt class="text-sm font-medium text-gray-500">Participants</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ participants.length }} participants</dd>
+                  <dd class="mt-1 text-sm text-gray-900">
+                    {{ Math.max(participants.length, videoParticipants.length) }} total
+                    <span v-if="isVideoJoined" class="ml-2 text-green-600">
+                      ({{ videoParticipants.length + 1 }} in video)
+                    </span>
+                  </dd>
+                </div>
+                <div v-if="isVideoJoined">
+                  <dt class="text-sm font-medium text-gray-500">Video Status</dt>
+                  <dd class="mt-1 text-sm text-green-600 font-medium">
+                    ● Connected to video conference
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -140,10 +140,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { apiService, type Circle, type Message } from '@/services/api'
+import VideoConference from './VideoConference.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -154,8 +155,20 @@ const messages = ref<Message[]>([])
 const participants = ref<any[]>([])
 const newMessage = ref('')
 const isLoading = ref(true)
+const videoParticipants = ref<any[]>([])
+const isVideoJoined = ref(false)
 
 let messagePolling: number | null = null
+
+// Generate unique session ID for this circle session
+const currentSessionId = computed(() => {
+  return `session-${Date.now()}`
+})
+
+// Get user display name for video conference
+const userDisplayName = computed(() => {
+  return authStore.userRole === 'facilitator' ? 'Facilitator' : 'Participant'
+})
 
 const loadCircle = async () => {
   try {
@@ -204,9 +217,48 @@ const sendMessage = async () => {
   }
 }
 
-const joinVideoCall = () => {
-  // Placeholder for Jitsi Meet integration
-  alert('Video call integration will be implemented in the next phase')
+// Video conference event handlers
+const onVideoJoined = (participantInfo: any) => {
+  isVideoJoined.value = true
+  console.log('Video conference joined:', participantInfo)
+  
+  // Send system message to chat when user joins video
+  sendSystemMessage(`${userDisplayName.value} joined the video conference`)
+}
+
+const onVideoLeft = () => {
+  isVideoJoined.value = false
+  videoParticipants.value = []
+  console.log('Video conference left')
+  
+  // Send system message to chat when user leaves video
+  sendSystemMessage(`${userDisplayName.value} left the video conference`)
+}
+
+const onParticipantJoined = (participant: any) => {
+  videoParticipants.value.push(participant)
+  console.log('Video participant joined:', participant)
+}
+
+const onParticipantLeft = (participant: any) => {
+  videoParticipants.value = videoParticipants.value.filter(p => p.id !== participant.id)
+  console.log('Video participant left:', participant)
+}
+
+// Send system message to chat
+const sendSystemMessage = async (message: string) => {
+  if (!circle.value) return
+  
+  try {
+    await apiService.sendMessage({
+      circle_id: circle.value.id,
+      content: message,
+      message_type: 'system'
+    })
+    await loadMessages() // Refresh messages
+  } catch (error) {
+    console.error('Failed to send system message:', error)
+  }
 }
 
 const startMessagePolling = () => {
