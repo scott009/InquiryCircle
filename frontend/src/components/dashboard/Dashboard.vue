@@ -3,7 +3,7 @@
     <h2 class="text-2xl font-bold text-gray-900 mb-4">Welcome to InquiryCircle</h2>
     <p class="text-gray-600 mb-6">Vue 3 + TypeScript + Tailwind CSS application is working!</p>
     
-    <div class="grid gap-4 md:grid-cols-2">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 class="text-lg font-semibold text-blue-900 mb-2">Test Jitsi Integration</h3>
         <p class="text-blue-700 mb-3">Test the video conferencing functionality</p>
@@ -23,6 +23,17 @@
           class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
         >
           Launch API Test
+        </router-link>
+      </div>
+
+      <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-purple-900 mb-2">Authentication</h3>
+        <p class="text-purple-700 mb-3">Test the key-based authentication system</p>
+        <router-link 
+          to="/login" 
+          class="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+        >
+          Test Login Form
         </router-link>
       </div>
     </div>
