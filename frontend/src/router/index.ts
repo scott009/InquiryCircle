@@ -46,6 +46,11 @@ const router = createRouter({
       path: '/test-video-integration',
       name: 'test-video-integration',
       component: () => import('../views/VideoTestDemo.vue')
+    },
+    {
+      path: '/circle-manager-demo',
+      name: 'circle-manager-demo',
+      component: () => import('../views/CircleManagerDemo.vue')
     }
   ]
 })

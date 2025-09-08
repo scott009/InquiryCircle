@@ -66,9 +66,31 @@ export interface Circle {
   jitsi_room_id: string
 }
 
+export interface CircleDetail extends Circle {
+  participants: ParticipantKey[]
+}
+
+export interface ParticipantKey {
+  key_id: number
+  access_key: string
+  role: 'participant' | 'facilitator'
+  created_at: string
+}
+
 export interface CreateCircleRequest {
   name: string
   description?: string
+}
+
+export interface UpdateCircleRequest {
+  name?: string
+  description?: string
+  status?: 'inactive' | 'active' | 'ended'
+}
+
+export interface GenerateKeyRequest {
+  key_name?: string
+  custom_key?: string
 }
 
 export interface CirclesResponse {
@@ -193,6 +215,31 @@ export class ApiService {
 
   async createCircle(circleData: CreateCircleRequest): Promise<Circle> {
     const response = await apiClient.post('/circles/', circleData)
+    return response.data
+  }
+
+  async getCircle(circleId: number): Promise<CircleDetail> {
+    const response = await apiClient.get(`/circles/${circleId}/`)
+    return response.data
+  }
+
+  async updateCircle(circleId: number, circleData: UpdateCircleRequest): Promise<Circle> {
+    const response = await apiClient.put(`/circles/${circleId}/`, circleData)
+    return response.data
+  }
+
+  async deleteCircle(circleId: number): Promise<{ message: string }> {
+    const response = await apiClient.delete(`/circles/${circleId}/`)
+    return response.data
+  }
+
+  async generateParticipantKey(circleId: number, keyData?: GenerateKeyRequest): Promise<ParticipantKey> {
+    const response = await apiClient.post(`/circles/${circleId}/keys/generate/`, keyData || {})
+    return response.data
+  }
+
+  async removeParticipantKey(circleId: number, keyId: number): Promise<{ message: string }> {
+    const response = await apiClient.delete(`/circles/${circleId}/keys/${keyId}/remove/`)
     return response.data
   }
 

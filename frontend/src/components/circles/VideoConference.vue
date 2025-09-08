@@ -77,7 +77,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { apiService } from '@/services/api';
+import { apiService, type JitsiRoom } from '@/services/api';
 import jitsiService, { JitsiService } from '../../services/jitsi';
 
 interface Props {
@@ -106,8 +106,8 @@ const isJoined = ref(false);
 const isLoading = ref(false);
 const participantCount = ref(0);
 const error = ref('');
-const jitsiApi = ref(null);
-const currentRoom = ref(null);
+const jitsiApi = ref<any>(null);
+const currentRoom = ref<JitsiRoom | null>(null);
 const participantId = ref(`user-${Date.now()}-${Math.random().toString(36).substring(7)}`);
 
 // Computed room name
@@ -118,9 +118,15 @@ const roomName = computed(() => {
 
 // Get or create room configuration
 const getRoomConfig = async () => {
+  // Validate circleId
+  const circleIdNum = parseInt(props.circleId);
+  if (isNaN(circleIdNum)) {
+    throw new Error(`Invalid circle ID: ${props.circleId}`);
+  }
+  
   try {
     // First try to get existing room
-    const roomConfig = await apiService.getRoomConfig(parseInt(props.circleId));
+    const roomConfig = await apiService.getRoomConfig(circleIdNum);
     currentRoom.value = roomConfig;
     return roomConfig;
   } catch (error: any) {
@@ -128,7 +134,7 @@ const getRoomConfig = async () => {
       // No room exists, create one if user is facilitator
       if (authStore.isFacilitator) {
         const newRoom = await apiService.createRoom({
-          circle_id: parseInt(props.circleId),
+          circle_id: circleIdNum,
           enable_lobby: true,
           enable_recording: false,
           max_participants: 20

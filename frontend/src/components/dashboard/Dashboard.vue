@@ -5,14 +5,22 @@
     
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <div class="lg:col-span-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-white mb-4">
-        <h3 class="text-lg font-semibold mb-2">🎉 Video Conferencing Integration Complete!</h3>
-        <p class="text-blue-100 mb-3">Test the complete video conferencing workflow integrated with circle management</p>
-        <router-link 
-          to="/test-video-integration" 
-          class="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
-        >
-          Test Video Integration Demo
-        </router-link>
+        <h3 class="text-lg font-semibold mb-2">🎉 Complete Circle Management System!</h3>
+        <p class="text-blue-100 mb-3">Create circles, manage participant keys, delete circles, and test video conferencing</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <router-link 
+            to="/circle-manager-demo" 
+            class="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+          >
+            Full Circle Management Demo
+          </router-link>
+          <router-link 
+            to="/test-video-integration" 
+            class="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-200 transition-colors"
+          >
+            Video Integration Test
+          </router-link>
+        </div>
       </div>
     </div>
     

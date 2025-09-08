@@ -126,10 +126,10 @@
 import { ref } from 'vue'
 import VideoConference from '../components/circles/VideoConference.vue'
 
-// Mock data for demonstration
+// Mock data for demonstration  
 const mockCircle = {
-  id: 'demo-123',
-  name: 'UI Testing Circle',
+  id: '1',
+  name: 'Test Circle (Video Demo)',
   description: 'Demonstration of video conference integration'
 }
 
