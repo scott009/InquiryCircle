@@ -28,11 +28,15 @@ localhost {
         reverse_proxy backend:8000
     }
 
-    # Everything else goes to Vue frontend (serve from local files)
+    # Everything else goes to Vue frontend
     handle {
-        root * /srv/www
-        try_files {path} /index.html
-        file_server
+        reverse_proxy frontend:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+            header_down -X-Frame-Options
+        }
     }
 
     # Enable access logs
