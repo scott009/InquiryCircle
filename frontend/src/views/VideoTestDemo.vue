@@ -14,8 +14,8 @@
               </svg>
             </router-link>
             <div class="flex-1">
-              <h1 class="text-2xl font-bold text-gray-900">Video Conference Integration Demo</h1>
-              <p class="text-sm text-gray-500 mt-1">Test the complete video conferencing workflow in circle context</p>
+              <h1 class="text-2xl font-bold text-gray-900">Video Conference Demo</h1>
+              <p class="text-sm text-gray-500 mt-1">Stage 2.2.2: Video conferencing with HTML window components</p>
             </div>
           </div>
         </div>
@@ -23,16 +23,17 @@
     </div>
 
     <!-- Main content -->
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Video Conference Area -->
-        <div class="lg:col-span-2">
+    <div class="max-w-full mx-auto py-6 px-4 space-y-6">
+      <!-- Top Row: Video Conference (75%) + Status Window (25%) -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Video Conference Area (75% width - 3 columns) -->
+        <div class="lg:col-span-3">
           <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
                 Demo Circle: "{{ mockCircle.name }}"
               </h3>
-              
+
               <!-- Jitsi Video Conference Component -->
               <VideoConference
                 :circleId="mockCircle.id"
@@ -48,26 +49,25 @@
           </div>
         </div>
 
-        <!-- Sidebar -->
+        <!-- Status Window (25% width - 1 column) -->
         <div class="lg:col-span-1">
-          <!-- Demo Information -->
-          <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+          <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
                 Demo Information
               </h3>
-              <dl class="grid grid-cols-1 gap-x-4 gap-y-4">
+              <dl class="space-y-4">
                 <div>
                   <dt class="text-sm font-medium text-gray-500">Circle ID</dt>
                   <dd class="mt-1 text-sm text-gray-900">{{ mockCircle.id }}</dd>
                 </div>
                 <div>
                   <dt class="text-sm font-medium text-gray-500">Session ID</dt>
-                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs">{{ mockSessionId }}</dd>
+                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs break-all">{{ mockSessionId }}</dd>
                 </div>
                 <div>
                   <dt class="text-sm font-medium text-gray-500">Jitsi Room</dt>
-                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs">
+                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs break-all">
                     inquirycircle-{{ mockCircle.id }}-{{ mockSessionId }}
                   </dd>
                 </div>
@@ -89,33 +89,22 @@
               </dl>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Event Log -->
-          <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                Event Log
-              </h3>
-              
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                <div v-if="eventLog.length === 0" class="text-sm text-gray-500 italic">
-                  No events yet. Join the video conference to see events.
-                </div>
-                <div 
-                  v-for="(event, index) in eventLog" 
-                  :key="index"
-                  class="text-xs p-2 rounded bg-gray-50 border-l-2 border-blue-200"
-                >
-                  <div class="font-mono text-gray-500">
-                    {{ event.timestamp.toLocaleTimeString() }}
-                  </div>
-                  <div class="text-gray-900 mt-1">
-                    {{ event.message }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <!-- Bottom Row: HTML Windows (100% width) -->
+      <div class="bg-red-500 text-white p-8 text-center text-2xl font-bold">
+        🚨 TEST: If you see this red box, Vue is working! 🚨
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+        <div class="min-h-[500px] bg-yellow-400 p-4">
+          <h2 class="text-xl font-bold mb-4">DEBUGGING: HtmlWin1 should appear below</h2>
+          <HtmlWin1 />
+        </div>
+        <div class="min-h-[500px] bg-purple-400 p-4">
+          <h2 class="text-xl font-bold mb-4">DEBUGGING: HtmlWin2 should appear below</h2>
+          <HtmlWin2 />
         </div>
       </div>
     </div>
@@ -123,8 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import VideoConference from '../components/circles/VideoConference.vue'
+import HtmlWin1 from '../components/html/HtmlWin1.vue'
+import HtmlWin2 from '../components/html/HtmlWin2.vue'
+import { useAuthStore } from '../stores/auth'
 
 // Mock data for demonstration  
 const mockCircle = {
@@ -137,6 +129,7 @@ const mockSessionId = `session-${Date.now()}`
 const isVideoJoined = ref(false)
 const videoParticipants = ref<any[]>([])
 const eventLog = ref<Array<{ timestamp: Date, message: string }>>([])
+const authStore = useAuthStore()
 
 // Event handlers
 const onVideoJoined = (participantInfo: any) => {
@@ -175,4 +168,21 @@ const addToEventLog = (message: string) => {
     eventLog.value = eventLog.value.slice(0, 20)
   }
 }
+
+// Auto-authenticate with demo facilitator key
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    try {
+      const success = await authStore.login('facilitator-key-123')
+      if (success) {
+        addToEventLog('🔑 Authenticated as demo facilitator')
+      } else {
+        addToEventLog('❌ Authentication failed: Invalid key')
+      }
+    } catch (error) {
+      addToEventLog('❌ Authentication failed: ' + error)
+      console.error('Demo authentication failed:', error)
+    }
+  }
+})
 </script>

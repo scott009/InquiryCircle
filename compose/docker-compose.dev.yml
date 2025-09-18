@@ -39,13 +39,13 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ../caddy/logs:/var/log/caddy
+      - ../caddy/site:/srv/www
       - caddy_data:/data
       - caddy_config:/config
     networks:
       - inquirycircle_network
     depends_on:
       - backend
-      - frontend
 
 networks:
   inquirycircle_network:
