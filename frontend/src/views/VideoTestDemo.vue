@@ -1,21 +1,57 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Page Header -->
+    <!-- Top Row Header: TitleBlock + StatusWin1 + TopMenu1 -->
     <div class="bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="py-6">
-          <div class="flex items-center">
-            <router-link 
-              to="/"
-              class="mr-4 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-            >
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </router-link>
-            <div class="flex-1">
-              <h1 class="text-2xl font-bold text-gray-900">Video Conference Demo</h1>
+        <div class="py-4">
+          <div class="grid grid-cols-12 gap-4 items-center">
+            <!-- TitleBlock (Left - 6 columns) -->
+            <div class="col-span-6">
+              <h1 class="text-2xl font-bold text-gray-900">Catbench Inquiry Circle - Meeting Screen</h1>
               <p class="text-sm text-gray-500 mt-1">Stage 2.2.2: Video conferencing with HTML window components</p>
+            </div>
+
+            <!-- StatusWin1 (Middle-Right - 4 columns, minimized) -->
+            <div class="col-span-4">
+              <div class="bg-gray-50 rounded-lg p-3">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Status</h3>
+                <div class="flex items-center space-x-4 text-xs">
+                  <div>
+                    <span :class="{
+                      'text-green-600': isVideoJoined,
+                      'text-gray-500': !isVideoJoined
+                    }">
+                      {{ isVideoJoined ? '● Connected' : '○ Not Connected' }}
+                    </span>
+                  </div>
+                  <div v-if="videoParticipants.length > 0" class="text-gray-600">
+                    {{ videoParticipants.length + 1 }} participants
+                  </div>
+                  <div class="text-gray-500">
+                    Session: {{ mockSessionId.slice(-8) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TopMenu1 (Right - 2 columns) -->
+            <div class="col-span-2">
+              <div class="flex items-center justify-end space-x-2">
+                <button class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                <router-link
+                  to="/"
+                  class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                  title="Back to Home"
+                >
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
@@ -24,10 +60,10 @@
 
     <!-- Main content -->
     <div class="max-w-full mx-auto py-6 px-4 space-y-6">
-      <!-- Top Row: Video Conference (75%) + Status Window (25%) -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Video Conference Area (75% width - 3 columns) -->
-        <div class="lg:col-span-3">
+      <!-- Middle Row: JitsiWin1 (2/3) + ContentPanel1 (1/3) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- JitsiWin1: Video Conference Area (2/3 width - 2 columns) -->
+        <div class="lg:col-span-2">
           <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
@@ -49,61 +85,17 @@
           </div>
         </div>
 
-        <!-- Status Window (25% width - 1 column) -->
+        <!-- ContentPanel1: Right content area (1/3 width - 1 column) -->
         <div class="lg:col-span-1">
-          <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                Demo Information
-              </h3>
-              <dl class="space-y-4">
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Circle ID</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ mockCircle.id }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Session ID</dt>
-                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs break-all">{{ mockSessionId }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Jitsi Room</dt>
-                  <dd class="mt-1 text-sm text-gray-900 font-mono text-xs break-all">
-                    inquirycircle-{{ mockCircle.id }}-{{ mockSessionId }}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Status</dt>
-                  <dd class="mt-1">
-                    <span :class="{
-                      'text-green-600': isVideoJoined,
-                      'text-gray-500': !isVideoJoined
-                    }">
-                      {{ isVideoJoined ? '● Connected' : '○ Not Connected' }}
-                    </span>
-                  </dd>
-                </div>
-                <div v-if="videoParticipants.length > 0">
-                  <dt class="text-sm font-medium text-gray-500">Video Participants</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ videoParticipants.length + 1 }} total</dd>
-                </div>
-              </dl>
-            </div>
+          <div class="h-[50vh] bg-white shadow overflow-hidden sm:rounded-lg">
+            <HtmlWin1 />
           </div>
         </div>
       </div>
 
-      <!-- Bottom Row: HTML Windows (100% width) -->
-      <div class="bg-red-500 text-white p-8 text-center text-2xl font-bold">
-        🚨 TEST: If you see this red box, Vue is working! 🚨
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-        <div class="min-h-[500px] bg-yellow-400 p-4">
-          <h2 class="text-xl font-bold mb-4">DEBUGGING: HtmlWin1 should appear below</h2>
-          <HtmlWin1 />
-        </div>
-        <div class="min-h-[500px] bg-purple-400 p-4">
-          <h2 class="text-xl font-bold mb-4">DEBUGGING: HtmlWin2 should appear below</h2>
+      <!-- Bottom Row: ContentPanel2 (Full Width) -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="h-auto">
           <HtmlWin2 />
         </div>
       </div>
