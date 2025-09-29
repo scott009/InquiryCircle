@@ -1,0 +1,156 @@
+# Work Order: HateReaction Implementation
+# Target: InquiryCircle Reaction System
+# Assigned to: Claude Haiku
+# Created: 2025-09-28
+
+work_order_id: "WO-REACT-004"
+class_name: "HateReaction"
+domain_module: "reactions.py"
+priority: "medium"
+estimated_effort: "35 minutes"
+
+# Base Architecture
+inheritance:
+  parent_class: "ReactionBase"
+  required_imports:
+    - "from reactions import ReactionBase, ReactionContext, VisibilityMode"
+
+# Class Specifications
+class_properties:
+  reaction_code: "hate"
+  display_name: "Hate"
+  category: "negative"
+  supports_targeting: true
+  default_visibility: "VisibilityMode.ANONYMOUS"
+
+# Method Requirements
+required_methods:
+  - method_name: "validation_hooks"
+    description: "Validate reaction context and permissions"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "None or raises ValidationError"
+    implementation_notes:
+      - "Require ANONYMOUS or SECRET visibility for strong negative reactions"
+      - "Require active participant status"
+      - "Apply stricter rate limiting for hate reactions"
+      - "Consider moderation policies for extreme negative feedback"
+
+  - method_name: "build_event"
+    description: "Create reaction event for broadcasting"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "ReactionEvent"
+    implementation_notes:
+      - "Include participant and target information"
+      - "Set appropriate visibility flags"
+      - "Add timestamp and room context"
+      - "Apply additional privacy protection for hate reactions"
+      - "Include moderation metadata"
+
+# Test Requirements
+unit_tests:
+  test_file: "test_hate_reaction.py"
+  required_test_cases:
+    - name: "test_hate_creation"
+      description: "Test basic HateReaction instantiation"
+      assertions:
+        - "reaction.reaction_code == 'hate'"
+        - "reaction.display_name == 'Hate'"
+
+    - name: "test_validation_success"
+      description: "Test successful validation with valid context"
+      setup:
+        - "Create valid ReactionContext with ANONYMOUS visibility"
+        - "Set participant as active"
+      assertions:
+        - "No exception raised"
+
+    - name: "test_validation_public_rejected"
+      description: "Test rejection of PUBLIC visibility for hate reactions"
+      setup:
+        - "Create ReactionContext with PUBLIC visibility"
+      assertions:
+        - "ValidationError raised for inappropriate visibility"
+
+    - name: "test_validation_inactive_participant"
+      description: "Test validation failure for inactive participant"
+      setup:
+        - "Create ReactionContext with inactive participant"
+      assertions:
+        - "ValidationError raised"
+
+    - name: "test_event_building"
+      description: "Test reaction event creation"
+      setup:
+        - "Create valid context with target and ANONYMOUS visibility"
+      assertions:
+        - "Event contains correct reaction_code"
+        - "Event includes redacted participant information"
+        - "Event has proper timestamp"
+
+    - name: "test_visibility_modes"
+      description: "Test supported visibility modes"
+      test_matrix:
+        visibility_modes: ["ANONYMOUS", "SECRET"]
+      assertions:
+        - "Event respects visibility setting"
+        - "Strong redaction applied for privacy protection"
+
+    - name: "test_moderation_features"
+      description: "Test moderation and privacy features"
+      setup:
+        - "Create context with hate reaction"
+      assertions:
+        - "Enhanced privacy protection applied"
+        - "Moderation metadata included"
+        - "Rate limiting metadata present"
+
+# Integration Requirements
+integration_checklist:
+  - "Passes all unit tests"
+  - "Follows domain model patterns"
+  - "Compatible with existing ReactionBase interface"
+  - "No external dependencies beyond domain layer"
+  - "Proper error handling and logging"
+  - "Enhanced privacy and moderation features"
+
+# Acceptance Criteria
+acceptance_tests:
+  - description: "Hate reaction enforces appropriate privacy"
+    steps:
+      - "Instantiate HateReaction"
+      - "Create ReactionContext with PUBLIC visibility"
+      - "Call validation_hooks() - should fail"
+      - "Create ReactionContext with ANONYMOUS visibility"
+      - "Call validation_hooks() - should succeed"
+
+  - description: "Hate reaction creates properly protected events"
+    steps:
+      - "Create valid context with ANONYMOUS visibility"
+      - "Call build_event()"
+      - "Verify strong privacy protection applied"
+      - "Verify moderation metadata included"
+
+# Code Quality Standards
+quality_requirements:
+  - "Follow Python PEP 8 style guidelines"
+  - "Include comprehensive docstrings"
+  - "Use type hints for all method signatures"
+  - "Handle edge cases gracefully"
+  - "Include debug logging where appropriate"
+  - "Implement enhanced privacy protection"
+
+# Deliverables
+expected_outputs:
+  - "hate_reaction.py - Complete class implementation"
+  - "test_hate_reaction.py - Comprehensive test suite"
+  - "implementation_notes.md - Developer notes and decisions"
+
+# File Locations
+target_paths:
+  implementation: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/hate_reaction.py"
+  tests: "/home/scott/inquirycircle/sandbox/backend/tests/domain/reactions/test_hate_reaction.py"
+  notes: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/implementation_notes.md"

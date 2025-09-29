@@ -1,0 +1,131 @@
+# Work Order Template: Reaction Class Implementation
+# Copy and customize this template for each reaction class
+
+work_order_id: "WO-REACT-XXX"  # Update with sequential number
+class_name: "{{REACTION_NAME}}Reaction"  # e.g., LoveReaction, DislikeReaction
+domain_module: "reactions.py"
+priority: "medium"  # high/medium/low
+estimated_effort: "30 minutes"
+
+# Base Architecture (Standard for all reactions)
+inheritance:
+  parent_class: "ReactionBase"
+  required_imports:
+    - "from reactions import ReactionBase, ReactionContext, VisibilityMode"
+
+# Class Specifications (Customize per reaction)
+class_properties:
+  reaction_code: "{{REACTION_CODE}}"  # e.g., "love", "dislike"
+  display_name: "{{DISPLAY_NAME}}"    # e.g., "Love", "Dislike"
+  category: "{{CATEGORY}}"            # positive/negative/neutral
+  supports_targeting: true            # true/false
+  default_visibility: "VisibilityMode.PUBLIC"  # PUBLIC/ANONYMOUS/etc.
+
+# Method Requirements (Standard for all reactions)
+required_methods:
+  - method_name: "validation_hooks"
+    description: "Validate reaction context and permissions"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "None or raises ValidationError"
+    implementation_notes:
+      - "Allow appropriate visibility modes for this reaction type"
+      - "Require active participant status"
+      - "Check rate limiting if enabled"
+      - "{{CUSTOM_VALIDATION_RULES}}"  # Add reaction-specific rules
+
+  - method_name: "build_event"
+    description: "Create reaction event for broadcasting"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "ReactionEvent"
+    implementation_notes:
+      - "Include participant and target information"
+      - "Set appropriate visibility flags"
+      - "Add timestamp and room context"
+      - "{{CUSTOM_EVENT_PROPERTIES}}"  # Add reaction-specific properties
+
+# Test Requirements (Standard framework)
+unit_tests:
+  test_file: "test_{{REACTION_CODE}}_reaction.py"
+  required_test_cases:
+    - name: "test_{{REACTION_CODE}}_creation"
+      description: "Test basic {{REACTION_NAME}}Reaction instantiation"
+      assertions:
+        - "reaction.reaction_code == '{{REACTION_CODE}}'"
+        - "reaction.display_name == '{{DISPLAY_NAME}}'"
+
+    - name: "test_validation_success"
+      description: "Test successful validation with valid context"
+      setup:
+        - "Create valid ReactionContext"
+        - "Set participant as active"
+      assertions:
+        - "No exception raised"
+
+    - name: "test_validation_inactive_participant"
+      description: "Test validation failure for inactive participant"
+      setup:
+        - "Create ReactionContext with inactive participant"
+      assertions:
+        - "ValidationError raised"
+
+    - name: "test_event_building"
+      description: "Test reaction event creation"
+      setup:
+        - "Create valid context with target"
+      assertions:
+        - "Event contains correct reaction_code"
+        - "Event includes participant information"
+        - "Event has proper timestamp"
+
+    - name: "test_visibility_modes"
+      description: "Test supported visibility modes"
+      test_matrix:
+        visibility_modes: ["PUBLIC", "ANONYMOUS", "ACCREDITED", "SECRET"]
+      assertions:
+        - "Event respects visibility setting"
+        - "Redaction applied for ANONYMOUS mode"
+
+# Custom Test Cases (Add reaction-specific tests)
+custom_test_cases:
+  - name: "{{CUSTOM_TEST_NAME}}"
+    description: "{{CUSTOM_TEST_DESCRIPTION}}"
+    # Add reaction-specific test requirements
+
+# Integration Requirements (Standard)
+integration_checklist:
+  - "Passes all unit tests"
+  - "Follows domain model patterns"
+  - "Compatible with existing ReactionBase interface"
+  - "No external dependencies beyond domain layer"
+  - "Proper error handling and logging"
+
+# Code Quality Standards (Standard)
+quality_requirements:
+  - "Follow Python PEP 8 style guidelines"
+  - "Include comprehensive docstrings"
+  - "Use type hints for all method signatures"
+  - "Handle edge cases gracefully"
+  - "Include debug logging where appropriate"
+
+# Deliverables (Standard)
+expected_outputs:
+  - "{{REACTION_CODE}}_reaction.py - Complete class implementation"
+  - "test_{{REACTION_CODE}}_reaction.py - Comprehensive test suite"
+  - "implementation_notes.md - Developer notes and decisions"
+
+# File Locations (Update paths)
+target_paths:
+  implementation: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/{{REACTION_CODE}}_reaction.py"
+  tests: "/home/scott/inquirycircle/sandbox/backend/tests/domain/reactions/test_{{REACTION_CODE}}_reaction.py"
+  notes: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/implementation_notes.md"
+
+# Usage Instructions
+# 1. Copy this template to work-orders/backend/domain/{{REACTION_CODE}}-reaction.yaml
+# 2. Replace all {{PLACEHOLDER}} values with reaction-specific information
+# 3. Add any custom validation rules or event properties
+# 4. Add custom test cases if needed
+# 5. Assign to Claude Haiku for implementation

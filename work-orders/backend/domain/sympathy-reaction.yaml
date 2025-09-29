@@ -1,0 +1,143 @@
+# Work Order: SympathyReaction Implementation
+# Target: InquiryCircle Reaction System
+# Assigned to: Claude Haiku
+# Created: 2025-09-28
+
+work_order_id: "WO-REACT-011"
+class_name: "SympathyReaction"
+domain_module: "reactions.py"
+priority: "high"
+estimated_effort: "30 minutes"
+
+# Base Architecture
+inheritance:
+  parent_class: "ReactionBase"
+  required_imports:
+    - "from reactions import ReactionBase, ReactionContext, VisibilityMode"
+
+# Class Specifications
+class_properties:
+  reaction_code: "sympathy"
+  display_name: "Sympathy"
+  category: "positive"
+  supports_targeting: true
+  default_visibility: "VisibilityMode.PUBLIC"
+
+# Method Requirements
+required_methods:
+  - method_name: "validation_hooks"
+    description: "Validate reaction context and permissions"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "None or raises ValidationError"
+    implementation_notes:
+      - "Allow all visibility modes"
+      - "Require active participant status"
+      - "Check rate limiting if enabled"
+      - "Support emotional support and empathy features"
+
+  - method_name: "build_event"
+    description: "Create reaction event for broadcasting"
+    parameters:
+      - name: "ctx"
+        type: "ReactionContext"
+    returns: "ReactionEvent"
+    implementation_notes:
+      - "Include participant and target information"
+      - "Set appropriate visibility flags"
+      - "Add timestamp and room context"
+      - "Include emotional support and empathy metadata"
+
+# Test Requirements
+unit_tests:
+  test_file: "test_sympathy_reaction.py"
+  required_test_cases:
+    - name: "test_sympathy_creation"
+      description: "Test basic SympathyReaction instantiation"
+      assertions:
+        - "reaction.reaction_code == 'sympathy'"
+        - "reaction.display_name == 'Sympathy'"
+
+    - name: "test_validation_success"
+      description: "Test successful validation with valid context"
+      setup:
+        - "Create valid ReactionContext"
+        - "Set participant as active"
+      assertions:
+        - "No exception raised"
+
+    - name: "test_validation_inactive_participant"
+      description: "Test validation failure for inactive participant"
+      setup:
+        - "Create ReactionContext with inactive participant"
+      assertions:
+        - "ValidationError raised"
+
+    - name: "test_event_building"
+      description: "Test reaction event creation"
+      setup:
+        - "Create valid context with target"
+      assertions:
+        - "Event contains correct reaction_code"
+        - "Event includes participant information"
+        - "Event has proper timestamp"
+
+    - name: "test_visibility_modes"
+      description: "Test all supported visibility modes"
+      test_matrix:
+        visibility_modes: ["PUBLIC", "ANONYMOUS", "ACCREDITED", "SECRET"]
+      assertions:
+        - "Event respects visibility setting"
+        - "Redaction applied for ANONYMOUS mode"
+
+    - name: "test_emotional_support_features"
+      description: "Test emotional support and empathy features"
+      setup:
+        - "Create context with sympathy reaction"
+      assertions:
+        - "Emotional support metadata included in event"
+        - "Empathy tracking enabled"
+
+# Integration Requirements
+integration_checklist:
+  - "Passes all unit tests"
+  - "Follows domain model patterns"
+  - "Compatible with existing ReactionBase interface"
+  - "No external dependencies beyond domain layer"
+  - "Proper error handling and logging"
+
+# Acceptance Criteria
+acceptance_tests:
+  - description: "Sympathy reaction can be created and validated"
+    steps:
+      - "Instantiate SympathyReaction"
+      - "Create valid ReactionContext"
+      - "Call validation_hooks() - should succeed"
+      - "Call build_event() - should return valid ReactionEvent"
+
+  - description: "Sympathy reaction provides emotional support"
+    steps:
+      - "Create sympathy reaction for participant"
+      - "Verify emotional support metadata"
+      - "Test empathy tracking features"
+
+# Code Quality Standards
+quality_requirements:
+  - "Follow Python PEP 8 style guidelines"
+  - "Include comprehensive docstrings"
+  - "Use type hints for all method signatures"
+  - "Handle edge cases gracefully"
+  - "Include debug logging where appropriate"
+
+# Deliverables
+expected_outputs:
+  - "sympathy_reaction.py - Complete class implementation"
+  - "test_sympathy_reaction.py - Comprehensive test suite"
+  - "implementation_notes.md - Developer notes and decisions"
+
+# File Locations
+target_paths:
+  implementation: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/sympathy_reaction.py"
+  tests: "/home/scott/inquirycircle/sandbox/backend/tests/domain/reactions/test_sympathy_reaction.py"
+  notes: "/home/scott/inquirycircle/sandbox/backend/domain/reactions/implementation_notes.md"
