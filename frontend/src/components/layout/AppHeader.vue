@@ -17,54 +17,8 @@
           </router-link>
         </div>
 
-        <div class="flex items-center space-x-4">
-          <!-- Auth Status -->
-          <div v-if="authStore.isAuthenticated" class="flex items-center space-x-4">
-            <!-- User Info -->
-            <div class="text-sm text-gray-600">
-              <span class="font-medium">{{ authStore.userRole === 'facilitator' ? 'Facilitator' : 'Participant' }}</span>
-              <span v-if="authStore.accessKey" class="ml-2 text-xs text-gray-400">
-                Key: {{ authStore.accessKey.substring(0, 8) }}...
-              </span>
-            </div>
-
-            <!-- Navigation Links -->
-            <nav class="flex space-x-2">
-              <router-link 
-                v-if="authStore.isFacilitator"
-                to="/dashboard"
-                class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                active-class="text-blue-600 bg-blue-50"
-              >
-                Dashboard
-              </router-link>
-              <router-link 
-                to="/circles"
-                class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                active-class="text-blue-600 bg-blue-50"
-              >
-                Circles
-              </router-link>
-            </nav>
-
-            <!-- Logout Button -->
-            <button
-              @click="handleLogout"
-              class="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
-            >
-              Logout
-            </button>
-          </div>
-
-          <!-- Login Link -->
-          <div v-else>
-            <router-link 
-              to="/login"
-              class="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Login
-            </router-link>
-          </div>
+        <div class="flex items-center">
+          <NavMenu1 />
         </div>
       </div>
     </div>
@@ -72,14 +26,5 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/')
-}
+import NavMenu1 from './NavMenu1.vue'
 </script>

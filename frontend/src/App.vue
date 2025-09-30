@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <AppHeader />
+    <TopBar1 />
     <main class="flex-1">
       <router-view />
     </main>
@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import AppHeader from './components/layout/AppHeader.vue'
+import TopBar1 from './components/layout/TopBar1.vue'
 // InquiryCircle Vue 3 Application
 // Main application component with Vue Router and navigation
 </script>
