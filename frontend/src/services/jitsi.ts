@@ -90,19 +90,17 @@ class JitsiService {
           startWithVideoMuted: false,
           enableWelcomePage: false,
           enableClosePage: false,
-          requireDisplayName: true,
-          disableInviteFunctions: true, // Disable public invite links
+          disableInviteFunctions: true,
           enableLobbyChat: false,
           enableInsecureRoomNameWarning: false,
+          // Disable authentication and security features
+          enableUserRolesBasedOnToken: false,
+          disableModeratorIndicator: false,
+          requireDisplayName: false,
+          enableNoisyMicDetection: false,
           // Room security settings
-          ...(config.password && { 
-            roomPassword: config.password 
-          }),
-          // Moderator settings
-          ...(config.moderator && {
-            startAudioMuted: 999, // Mute all participants except moderator
-            startVideoMuted: 999,
-            enableUserRolesBasedOnToken: true
+          ...(config.password && {
+            roomPassword: config.password
           })
         },
         interfaceConfigOverwrite: {

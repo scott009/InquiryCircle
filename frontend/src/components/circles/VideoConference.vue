@@ -76,9 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import { apiService, type JitsiRoom } from '@/services/api';
-import jitsiService, { JitsiService } from '../../services/jitsi';
+import jitsiService from '../../services/jitsi';
 
 interface Props {
   circleId: string;
@@ -100,54 +98,18 @@ const emit = defineEmits<{
 }>();
 
 // Reactive state
-const authStore = useAuthStore();
 const displayName = ref(props.userDisplayName || '');
 const isJoined = ref(false);
 const isLoading = ref(false);
 const participantCount = ref(0);
 const error = ref('');
 const jitsiApi = ref<any>(null);
-const currentRoom = ref<JitsiRoom | null>(null);
-const participantId = ref(`user-${Date.now()}-${Math.random().toString(36).substring(7)}`);
 
-// Computed room name
+// Simple room name based on circle ID - static so all users join same room
 const roomName = computed(() => {
-  return currentRoom.value?.room_name || 
-         JitsiService.generateRoomName(props.circleId, props.sessionId);
+  // Use a unique but static room name format
+  return `InquiryCircleDemo${props.circleId}`;
 });
-
-// Get or create room configuration
-const getRoomConfig = async () => {
-  // Validate circleId
-  const circleIdNum = parseInt(props.circleId);
-  if (isNaN(circleIdNum)) {
-    throw new Error(`Invalid circle ID: ${props.circleId}`);
-  }
-  
-  try {
-    // First try to get existing room
-    const roomConfig = await apiService.getRoomConfig(circleIdNum);
-    currentRoom.value = roomConfig;
-    return roomConfig;
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      // No room exists, create one if user is facilitator
-      if (authStore.isFacilitator) {
-        const newRoom = await apiService.createRoom({
-          circle_id: circleIdNum,
-          enable_lobby: true,
-          enable_recording: false,
-          max_participants: 20
-        });
-        currentRoom.value = newRoom;
-        return newRoom;
-      } else {
-        throw new Error('No active room found. Please ask the facilitator to start the video conference.');
-      }
-    }
-    throw error;
-  }
-};
 
 // Join conference
 const joinConference = async () => {
@@ -160,34 +122,21 @@ const joinConference = async () => {
     isLoading.value = true;
     error.value = '';
 
-    // Get room configuration from backend
-    const roomConfig = await getRoomConfig();
-    
+    // Simple Jitsi initialization without backend
     const api = await jitsiService.initializeConference({
-      roomName: roomConfig.room_name,
+      roomName: roomName.value,
       displayName: displayName.value.trim(),
-      subject: roomConfig.config.subject || props.circleTitle,
-      password: roomConfig.room_password,
-      moderator: authStore.isFacilitator
+      subject: props.circleTitle,
+      moderator: false // No moderator distinction for now
     }, 'jitsi-conference');
 
     jitsiApi.value = api;
-
-    // Notify backend of join
-    try {
-      await apiService.joinRoom(roomConfig.room_id, {
-        participant_id: participantId.value,
-        display_name: displayName.value.trim()
-      });
-    } catch (joinError) {
-      console.warn('Failed to notify backend of room join:', joinError);
-    }
 
     // Set up event listeners
     setupEventListeners();
 
     isJoined.value = true;
-    
+
   } catch (err: any) {
     error.value = err.message || 'Failed to join conference. Please try again.';
     console.error('Conference join error:', err);
@@ -197,19 +146,8 @@ const joinConference = async () => {
 };
 
 // Leave conference
-const leaveConference = async () => {
+const leaveConference = () => {
   if (jitsiApi.value) {
-    // Notify backend of leave
-    if (currentRoom.value) {
-      try {
-        await apiService.leaveRoom(currentRoom.value.room_id, {
-          participant_id: participantId.value
-        });
-      } catch (leaveError) {
-        console.warn('Failed to notify backend of room leave:', leaveError);
-      }
-    }
-    
     jitsiService.hangup();
   }
 };
