@@ -10,6 +10,11 @@ const router = createRouter({
       component: () => import('../components/dashboard/Dashboard.vue')
     },
     {
+      path: '/tests',
+      name: 'tests',
+      component: () => import('../views/Tests.vue')
+    },
+    {
       path: '/test-jitsi',
       name: 'test-jitsi',
       component: () => import('../views/JitsiTest.vue')
@@ -25,15 +30,9 @@ const router = createRouter({
       component: () => import('../components/auth/LoginForm.vue')
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('../components/dashboard/FacilitatorDashboard.vue'),
-      meta: { requiresAuth: true, role: 'facilitator' }
-    },
-    {
-      path: '/circles',
-      name: 'circles',
-      component: () => import('../components/circles/CirclesList.vue'),
+      path: '/administration',
+      name: 'administration',
+      component: () => import('../views/Administration.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -43,9 +42,19 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/test-video-integration',
-      name: 'test-video-integration',
+      path: '/meeting',
+      name: 'meeting',
       component: () => import('../views/VideoTestDemo.vue')
+    },
+    {
+      path: '/facmeet',
+      name: 'facmeet',
+      component: () => import('../views/FacilitatorMeeting.vue')
+    },
+    {
+      path: '/facpanel',
+      name: 'facpanel',
+      component: () => import('../views/FacilitatorPanel.vue')
     },
     {
       path: '/circle-manager-demo',
@@ -74,23 +83,15 @@ router.beforeEach(async (to, _from, next) => {
 
     // Check role-based access
     if (to.meta.role && authStore.userRole !== to.meta.role) {
-      // Redirect to appropriate dashboard based on role
-      if (authStore.isFacilitator) {
-        next({ name: 'dashboard' })
-      } else {
-        next({ name: 'circles' })
-      }
+      // Redirect to administration for any authenticated user
+      next({ name: 'administration' })
       return
     }
   }
 
-  // If already authenticated and going to login, redirect to appropriate dashboard
+  // If already authenticated and going to login, redirect to administration
   if (to.name === 'login' && authStore.isAuthenticated) {
-    if (authStore.isFacilitator) {
-      next({ name: 'dashboard' })
-    } else {
-      next({ name: 'circles' })
-    }
+    next({ name: 'administration' })
     return
   }
 

@@ -7,8 +7,8 @@
           <div class="grid grid-cols-12 gap-4 items-center">
             <!-- TitleBlock (Left - 6 columns) -->
             <div class="col-span-6">
-              <h1 class="text-2xl font-bold text-gray-900">Meeting</h1>
-              <p class="text-sm text-gray-500 mt-1">Video conferencing with HTML window components</p>
+              <h1 class="text-2xl font-bold text-gray-900">Facilitator's Meeting Page</h1>
+              <p class="text-sm text-gray-500 mt-1">Facilitator view with enhanced controls</p>
             </div>
 
             <!-- StatusWin1 (Middle-Right - 4 columns, minimized) -->
