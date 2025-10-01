@@ -32,6 +32,12 @@
 
     <!-- Main content -->
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <!-- ReactionBar2: Reaction configuration for facilitators -->
+      <div class="mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Reaction Configuration</h2>
+        <ReactionBar2 />
+      </div>
+
       <!-- Navigation Cards -->
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <!-- Facilitator Meeting Card -->
@@ -70,5 +76,6 @@
 </template>
 
 <script setup lang="ts">
+import ReactionBar2 from '../components/reactions/ReactionBar2.vue'
 // Facilitator Control Panel - Navigation hub for facilitators
 </script>

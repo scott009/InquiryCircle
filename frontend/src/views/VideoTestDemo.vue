@@ -35,6 +35,11 @@
         </div>
       </div>
 
+      <!-- ReactionBar1: Reaction buttons with display mode controls -->
+      <div>
+        <ReactionBar1 />
+      </div>
+
       <!-- Bottom Row: ContentPanel2 (Full Width) -->
       <div class="bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="h-auto">
@@ -50,6 +55,7 @@ import { ref, onMounted } from 'vue'
 import VideoConference from '../components/circles/VideoConference.vue'
 import HtmlWin1 from '../components/html/HtmlWin1.vue'
 import HtmlWin2 from '../components/html/HtmlWin2.vue'
+import ReactionBar1 from '../components/reactions/ReactionBar1.vue'
 import { useAuthStore } from '../stores/auth'
 
 // Mock data for demonstration  
