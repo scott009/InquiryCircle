@@ -1,0 +1,158 @@
+{
+  "defaultMessage": {
+    "id": "descbar-empty-state",
+    "text": "Click an element to see what it does"
+  },
+  "elements": {
+    "like1": {
+      "label": "Like",
+      "id": "like1",
+      "description": "Express positive sentiment about the speaker"
+    },
+    "love1": {
+      "label": "Love",
+      "id": "love1",
+      "description": "Express strong positive sentiment about the speaker"
+    },
+    "dislike1": {
+      "label": "Dislike",
+      "id": "dislike1",
+      "description": "Express negative sentiment about the speaker"
+    },
+    "hate1": {
+      "label": "Hate",
+      "id": "hate1",
+      "description": "Express strong negative sentiment about the speaker"
+    },
+    "agree1": {
+      "label": "Agree",
+      "id": "agree1",
+      "description": "Signal agreement with the speaker's point"
+    },
+    "disagree1": {
+      "label": "Disagree",
+      "id": "disagree1",
+      "description": "Signal disagreement with the speaker's point"
+    },
+    "goon1": {
+      "label": "Go On",
+      "id": "goon1",
+      "description": "Encourage the speaker to continue"
+    },
+    "hurryup1": {
+      "label": "Hurry Up",
+      "id": "hurryup1",
+      "description": "Signal the speaker to move faster"
+    },
+    "boring1": {
+      "label": "Boring",
+      "id": "boring1",
+      "description": "Indicate the content is uninteresting"
+    },
+    "interest1": {
+      "label": "Interesting",
+      "id": "interest1",
+      "description": "Indicate the content is engaging"
+    },
+    "sympathy1": {
+      "label": "Sympathy",
+      "id": "sympathy1",
+      "description": "Express empathy with the speaker"
+    },
+    "laugh1": {
+      "label": "Laugh",
+      "id": "laugh1",
+      "description": "React with humor to the speaker"
+    },
+    "like_l1": {
+      "label": "Like Count",
+      "id": "like_l1",
+      "description": "Shows total like reactions"
+    },
+    "love_l1": {
+      "label": "Love Count",
+      "id": "love_l1",
+      "description": "Shows total love reactions"
+    },
+    "dislike_l1": {
+      "label": "Dislike Count",
+      "id": "dislike_l1",
+      "description": "Shows total dislike reactions"
+    },
+    "hate_l1": {
+      "label": "Hate Count",
+      "id": "hate_l1",
+      "description": "Shows total hate reactions"
+    },
+    "agreel1": {
+      "label": "Agree Count",
+      "id": "agreel1",
+      "description": "Shows total agree reactions"
+    },
+    "disagree_l1": {
+      "label": "Disagree Count",
+      "id": "disagree_l1",
+      "description": "Shows total disagree reactions"
+    },
+    "goon_l1": {
+      "label": "Go On Count",
+      "id": "goon_l1",
+      "description": "Shows total go on reactions"
+    },
+    "hurryup_l1": {
+      "label": "Hurry Up Count",
+      "id": "hurryup_l1",
+      "description": "Shows total hurry up reactions"
+    },
+    "boring_l1": {
+      "label": "Boring Count",
+      "id": "boring_l1",
+      "description": "Shows total boring reactions"
+    },
+    "interest_l1": {
+      "label": "Interesting Count",
+      "id": "interest_l1",
+      "description": "Shows total interesting reactions"
+    },
+    "sympathy_l1": {
+      "label": "Sympathy Count",
+      "id": "sympathy_l1",
+      "description": "Shows total sympathy reactions"
+    },
+    "laugh_l1": {
+      "label": "Laugh Count",
+      "id": "laugh_l1",
+      "description": "Shows total laugh reactions"
+    },
+    "ropt1": {
+      "label": "Public Mode",
+      "id": "ropt1",
+      "description": "Reactions visible and attributed by name"
+    },
+    "ropt2": {
+      "label": "Anonymous Mode",
+      "id": "ropt2",
+      "description": "Reactions visible but not attributed by name"
+    },
+    "ropt3": {
+      "label": "Secret Mode",
+      "id": "ropt3",
+      "description": "Reactions visible only to facilitator"
+    },
+    "rch1": {
+      "label": "Public Mode Indicator",
+      "id": "rch1",
+      "description": "missing description"
+    },
+    "rch2": {
+      "label": "Anonymous Mode Indicator",
+      "id": "rch2",
+      "description": "missing description"
+    },
+    "rch3": {
+      "label": "Secret Mode Indicator",
+      "id": "rch3",
+      "description": "missing description"
+    }
+  }
+}

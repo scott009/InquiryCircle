@@ -14,15 +14,15 @@
         <div class="flex flex-col gap-1">
           <label class="flex items-center cursor-pointer text-sm">
             <input type="radio" name="like-mode" value="credited" v-model="reactionModes.like" class="mr-1" />
-            <span class="px-2 py-1 bg-green-500 text-white rounded text-sm">Credited</span>
+            <span id="ropt1" @click="handleElementClick('ropt1')" class="px-2 py-1 bg-green-500 text-white rounded text-sm">Credited</span>
           </label>
           <label class="flex items-center cursor-pointer text-sm">
             <input type="radio" name="like-mode" value="secret" v-model="reactionModes.like" class="mr-1" />
-            <span class="px-2 py-1 bg-red-600 text-white rounded text-sm">Secret</span>
+            <span id="ropt3" @click="handleElementClick('ropt3')" class="px-2 py-1 bg-red-600 text-white rounded text-sm">Secret</span>
           </label>
           <label class="flex items-center cursor-pointer text-sm">
             <input type="radio" name="like-mode" value="anon" v-model="reactionModes.like" class="mr-1" />
-            <span class="px-2 py-1 bg-blue-500 text-white rounded text-sm">Anon</span>
+            <span id="ropt2" @click="handleElementClick('ropt2')" class="px-2 py-1 bg-blue-500 text-white rounded text-sm">Anon</span>
           </label>
         </div>
       </div>
@@ -288,6 +288,18 @@ const reactionModes = reactive({
   laugh: 'anon'          // Fixed as anon (CORRECTED)
 })
 
+// Notify DescBar1 of element click
+const notifyDescBar = (elementId: string) => {
+  if ((window as any).descBarHandler) {
+    (window as any).descBarHandler(elementId)
+  }
+}
+
+// Handle element click (for DescBar1 notification)
+const handleElementClick = (elementId: string) => {
+  notifyDescBar(elementId)
+}
+
 // Toggle reaction on/off
 const toggleReaction = (reactionType: string) => {
   // Toggle the state
@@ -297,6 +309,10 @@ const toggleReaction = (reactionType: string) => {
   const mode = reactionModes[reactionType as keyof typeof reactionModes]
 
   console.log(`Reaction ${reactionType}: ${isOn ? 'ON' : 'OFF'} with mode: ${mode}`)
+
+  // Notify DescBar1 of button click (using element ID like 'like1')
+  const elementId = `${reactionType}1`
+  notifyDescBar(elementId)
 
   // TODO: Integrate with WebSocket or API to send reaction state and mode
   // This will eventually call the backend reactions.py classes
