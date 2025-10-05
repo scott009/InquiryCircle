@@ -1,0 +1,130 @@
+# Workorder Template
+# Copy this file and fill in the sections for new workorders
+# Filename format: workorder-[feature-name]-[component-name].yml
+
+metadata:
+  title: "[Brief description of what to build]"
+  assigned_to: "haiku"  # or "sonnet" for complex tasks
+  stage: "[e.g., 2.4.0]"
+  priority: "[low|medium|high|critical]"
+  created: "[YYYY-MM-DD]"
+  status: "[pending|in_progress|completed|blocked]"
+  dependencies: []  # List of other workorder files that must complete first
+  estimated_effort: "[e.g., 2 hours, 1 day]"
+
+context:
+  description: |
+    Multi-line description of what needs to be built and why.
+    Include business context and how this fits into the larger system.
+
+  reference_materials:
+    - url: "[URL to relevant docs]"
+      description: "[What this doc provides]"
+    - path: "[Path to relevant code file]"
+      description: "[What to learn from this file]"
+
+  business_rules:
+    - "[Rule 1]"
+    - "[Rule 2]"
+
+deliverables:
+  output_path: "[Full path to output file]"
+
+  required_components:
+    - component: "[Component category name]"
+      items:
+        - "[Item 1]"
+        - "[Item 2]"
+
+specifications:
+  # Define what to build in detail
+  # This section varies by workorder type
+
+  # Example for classes:
+  classes:
+    ClassName:
+      type: "[class|abstract class|dataclass|Protocol]"
+      description: "[What this class does]"
+
+      fields:
+        - name: "[field_name]"
+          type: "[type annotation]"
+          required: [true|false]
+          description: "[What this field represents]"
+
+      methods:
+        - name: "[method_name]"
+          params:
+            - "[param1: type]"
+            - "[param2: type]"
+          returns: "[return type]"
+          description: "[What this method does]"
+
+  # Example for tests:
+  test_cases:
+    - test_name: "[test_function_name]"
+      description: "[What this test verifies]"
+      arrange:
+        - "[Setup step 1]"
+      act:
+        - "[Action to test]"
+      assert:
+        - "[Expected outcome 1]"
+
+technical_requirements:
+  language: "[Python|JavaScript|etc.]"
+
+  dependencies:
+    allowed:
+      - "[dependency 1]"
+    forbidden:
+      - "[dependency to avoid]"
+
+  code_style:
+    - "[Style guideline 1]"
+    - "[Style guideline 2]"
+
+  structure:
+    - "[Structural requirement 1]"
+
+acceptance_criteria:
+  functional:
+    - "✓ [Functional requirement 1]"
+    - "✓ [Functional requirement 2]"
+
+  technical:
+    - "✓ [Technical requirement 1]"
+    - "✓ [Technical requirement 2]"
+
+validation:
+  commands:
+    - command: "[command to run]"
+      expected_exit_code: [0|1|etc.]
+      description: "[What this validates]"
+
+  pre_commit:
+    - command: "[command to run before committing]"
+      description: "[What this checks]"
+
+notes:
+  - "[Important note 1]"
+  - "[Important note 2]"
+
+hints_for_ai:
+  - "[Helpful hint 1 for AI implementing this]"
+  - "[Helpful hint 2]"
+  - "[Suggested implementation order]"
+
+# Optional sections:
+
+example_usage: |
+  # Show example of how to use the delivered code
+  from module import Class
+
+  instance = Class()
+  result = instance.method()
+
+example_output: |
+  # Show example output or test results
+  $ pytest test_file.py -v
+  test_example ... PASSED

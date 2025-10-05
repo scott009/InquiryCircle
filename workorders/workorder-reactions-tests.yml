@@ -1,0 +1,486 @@
+# Workorder: Reaction Domain Tests
+# Target: Claude Haiku (or other code-focused AI)
+# Purpose: Build comprehensive unit tests for reaction domain models
+
+metadata:
+  title: "Build Reaction Domain Unit Tests"
+  assigned_to: "haiku"
+  stage: "2.4.0"
+  priority: "high"
+  created: "2025-10-04"
+  status: "pending"
+  dependencies:
+    - "workorder-reactions-domain.yml (must be completed first)"
+  estimated_effort: "2 hours"
+
+context:
+  description: |
+    Create comprehensive unit tests for the reaction domain models. These tests must run
+    independently of any UI, database, or framework infrastructure. Use pytest with
+    fixtures and mocks to test all business logic in isolation.
+
+  reference_materials:
+    - url: "https://github.com/scott009/docs-websystems/tree/main/discussion/2025-09-22-jitsi-api-python/reactions_test.py"
+      description: "Test stub template"
+    - path: "/home/scott/inquirycircle/backend/interactions/domain/reactions.py"
+      description: "Source code to test (created by workorder-reactions-domain.yml)"
+
+  testing_philosophy:
+    - "Test domain logic in complete isolation"
+    - "Use fakes/mocks for all interfaces (Policy, Repository, Broadcaster, JitsiDirectory)"
+    - "Test happy paths AND edge cases"
+    - "Test all 12 reaction types"
+    - "Test all 3 visibility modes"
+    - "Verify policy enforcement"
+    - "Verify correct broadcasting behavior"
+
+deliverables:
+  output_path: "/home/scott/inquirycircle/backend/interactions/tests/test_reactions.py"
+
+  test_coverage_target: "90%"
+
+  required_test_categories:
+    - category: "Enum Tests"
+      tests:
+        - "Test all ReactionCode values exist"
+        - "Test all VisibilityMode values exist"
+
+    - category: "Value Object Tests"
+      tests:
+        - "Test ReactionContext creation and to_dict()"
+        - "Test ReactionEvent creation and to_dict()"
+        - "Test invalid contexts raise appropriate errors"
+
+    - category: "Reaction Class Tests"
+      tests:
+        - "Test each of 12 reaction types instantiate correctly"
+        - "Test each reaction has correct code, emoji, label"
+        - "Test reaction.to_event() creates valid ReactionEvent"
+        - "Test reaction.to_dict() serializes correctly"
+
+    - category: "Factory Tests"
+      tests:
+        - "Test ReactionFactory creates correct class for each code"
+        - "Test factory raises error for invalid code"
+
+    - category: "Service Tests - Happy Path"
+      tests:
+        - "Test handle_submit with ACCREDITED visibility (all see sender)"
+        - "Test handle_submit with ANONYMOUS visibility (sender redacted)"
+        - "Test handle_submit with SECRET visibility (only facilitators see)"
+
+    - category: "Service Tests - Policy Validation"
+      tests:
+        - "Test policy.validate() is called"
+        - "Test PolicyViolation prevents save/broadcast"
+
+    - category: "Service Tests - Persistence"
+      tests:
+        - "Test repository.save() is called with reaction"
+        - "Test repository.count() returns correct counts"
+
+    - category: "Service Tests - Broadcasting"
+      tests:
+        - "Test ACCREDITED reactions broadcast to all"
+        - "Test ANONYMOUS reactions broadcast to all (with redaction)"
+        - "Test SECRET reactions broadcast only to facilitators"
+        - "Test broadcaster called with correct methods"
+
+specifications:
+
+  test_fixtures:
+    FakePolicy:
+      description: "Mock Policy that tracks calls and optionally raises violations"
+      state:
+        - "validate_calls: list"
+        - "redact_calls: list"
+        - "should_raise: bool (for testing violations)"
+      methods:
+        - "validate(reaction, room_state) -> None or raise"
+        - "redact_sender(event) -> event with sender removed"
+        - "rate_limit_key(reaction) -> None (not tested yet)"
+        - "aggregate_key(reaction) -> None (not tested yet)"
+
+    FakeRepository:
+      description: "In-memory repository for tracking saved reactions"
+      state:
+        - "saved_reactions: list[BaseReaction]"
+        - "counts: dict[tuple[str, ReactionCode], int]"
+      methods:
+        - "save(reaction) -> append to saved_reactions"
+        - "count(room_id, code) -> return count from dict"
+
+    FakeBroadcaster:
+      description: "Mock broadcaster that captures all send calls"
+      state:
+        - "all_sends: list[tuple[room_id, event]]"
+        - "participant_sends: list[tuple[room_id, participant_id, event]]"
+        - "facilitator_sends: list[tuple[room_id, event]]"
+      methods:
+        - "send_to_all(room_id, event)"
+        - "send_to_participant(room_id, participant_id, event)"
+        - "send_to_facilitators(room_id, event)"
+
+    FakeJitsiDirectory:
+      description: "Mock directory with fixed test data"
+      state:
+        - "speaker_id: str | None (e.g., 'speaker123')"
+        - "facilitator_ids: list[str] (e.g., ['fac1', 'fac2'])"
+        - "participant_list: list[str] (e.g., ['p1', 'p2', 'p3'])"
+      methods:
+        - "current_speaker(room_id) -> speaker_id"
+        - "facilitators(room_id) -> facilitator_ids"
+        - "participant_ids(room_id) -> participant_list"
+
+    FakeRoomState:
+      description: "Simple value object for room state"
+      fields:
+        - "room_id: str"
+        - "participants: list[str]"
+        - "facilitators: list[str]"
+        - "speaker: str | None"
+
+    pytest_fixtures:
+      - fixture: "policy"
+        returns: "FakePolicy"
+
+      - fixture: "repo"
+        returns: "FakeRepository"
+
+      - fixture: "broadcaster"
+        returns: "FakeBroadcaster"
+
+      - fixture: "directory"
+        returns: "FakeJitsiDirectory"
+
+      - fixture: "room_state"
+        returns: "FakeRoomState"
+
+      - fixture: "service"
+        params: ["policy", "repo", "broadcaster", "directory"]
+        returns: "ReactionService"
+
+      - fixture: "sample_context"
+        returns: "ReactionContext with test data"
+
+  test_cases:
+
+    enum_tests:
+      - test_name: "test_reaction_code_values"
+        description: "Verify all 12 reaction codes exist"
+        assertions:
+          - "ReactionCode.LIKE exists"
+          - "ReactionCode.LOVE exists"
+          - "... (all 12)"
+
+      - test_name: "test_visibility_mode_values"
+        description: "Verify all 3 visibility modes exist"
+        assertions:
+          - "VisibilityMode.ANONYMOUS exists"
+          - "VisibilityMode.ACCREDITED exists"
+          - "VisibilityMode.SECRET exists"
+
+    value_object_tests:
+      - test_name: "test_reaction_context_creation"
+        arrange:
+          - "Create ReactionContext with all fields"
+        act:
+          - "ctx = ReactionContext(...)"
+        assert:
+          - "ctx.sender_user_id == 'user123'"
+          - "ctx.room_id == 'room456'"
+          - "ctx.to_dict() returns dict with all fields"
+
+      - test_name: "test_reaction_event_serialization"
+        arrange:
+          - "Create ReactionEvent"
+        act:
+          - "event.to_dict()"
+        assert:
+          - "Returns dict with reaction_code, visibility, timestamp, etc."
+
+    reaction_class_tests:
+      - test_name: "test_like_reaction_properties"
+        arrange:
+          - "Create LikeReaction"
+        assert:
+          - "reaction.code == ReactionCode.LIKE"
+          - "reaction.emoji == '👍'"
+          - "reaction.label == 'Like'"
+
+      - test_name: "test_all_reaction_types_instantiate"
+        description: "Parameterized test for all 12 reactions"
+        parameterize:
+          - "reaction_class, expected_code, expected_emoji, expected_label"
+        cases:
+          - "[LikeReaction, ReactionCode.LIKE, '👍', 'Like']"
+          - "[LoveReaction, ReactionCode.LOVE, '❤️', 'Love']"
+          - "... (all 12)"
+        assert:
+          - "reaction.code == expected_code"
+          - "reaction.emoji == expected_emoji"
+          - "reaction.label == expected_label"
+
+      - test_name: "test_reaction_to_event"
+        arrange:
+          - "Create LikeReaction with context"
+        act:
+          - "event = reaction.to_event()"
+        assert:
+          - "isinstance(event, ReactionEvent)"
+          - "event.reaction_code == reaction.code"
+
+      - test_name: "test_reaction_to_dict"
+        arrange:
+          - "Create LikeReaction"
+        act:
+          - "data = reaction.to_dict()"
+        assert:
+          - "data['code'] == 'LIKE'"
+          - "data['visibility'] == 'ACCREDITED'"
+          - "data['context'] exists"
+
+    factory_tests:
+      - test_name: "test_factory_creates_correct_classes"
+        parameterize:
+          - "code, expected_class"
+        cases:
+          - "[ReactionCode.LIKE, LikeReaction]"
+          - "[ReactionCode.LOVE, LoveReaction]"
+          - "... (all 12)"
+        arrange:
+          - "factory = ReactionFactory()"
+          - "ctx = sample_context"
+        act:
+          - "reaction = factory.create(code, VisibilityMode.ACCREDITED, ctx)"
+        assert:
+          - "isinstance(reaction, expected_class)"
+
+      - test_name: "test_factory_invalid_code"
+        arrange:
+          - "factory = ReactionFactory()"
+        act_assert:
+          - "with pytest.raises(ValueError): factory.create('INVALID', ...)"
+
+    service_happy_path_tests:
+      - test_name: "test_submit_accredited_reaction"
+        arrange:
+          - "service with all fakes"
+          - "payload = {code: 'LIKE', visibility: 'ACCREDITED', sender: 'user1', room: 'room1'}"
+        act:
+          - "event = service.handle_submit(payload)"
+        assert:
+          - "repo.saved_reactions has 1 reaction"
+          - "broadcaster.all_sends has 1 event"
+          - "event.sender_info is NOT None (accredited shows sender)"
+
+      - test_name: "test_submit_anonymous_reaction"
+        arrange:
+          - "service with all fakes"
+          - "payload with visibility: 'ANONYMOUS'"
+        act:
+          - "event = service.handle_submit(payload)"
+        assert:
+          - "policy.redact_sender was called"
+          - "event.sender_info is None (redacted)"
+          - "broadcaster.all_sends has 1 event"
+
+      - test_name: "test_submit_secret_reaction"
+        arrange:
+          - "service with all fakes"
+          - "payload with visibility: 'SECRET'"
+        act:
+          - "event = service.handle_submit(payload)"
+        assert:
+          - "broadcaster.facilitator_sends has 1 event"
+          - "broadcaster.all_sends has 0 events (not sent to all)"
+
+    service_policy_tests:
+      - test_name: "test_policy_validate_called"
+        arrange:
+          - "service with FakePolicy"
+        act:
+          - "service.handle_submit(payload)"
+        assert:
+          - "len(policy.validate_calls) == 1"
+
+      - test_name: "test_policy_violation_prevents_save"
+        arrange:
+          - "policy.should_raise = True"
+        act_assert:
+          - "with pytest.raises(PolicyViolation): service.handle_submit(payload)"
+          - "len(repo.saved_reactions) == 0 (not saved)"
+          - "len(broadcaster.all_sends) == 0 (not broadcast)"
+
+    service_persistence_tests:
+      - test_name: "test_repository_save_called"
+        arrange:
+          - "service with FakeRepository"
+        act:
+          - "service.handle_submit(payload)"
+        assert:
+          - "len(repo.saved_reactions) == 1"
+          - "repo.saved_reactions[0].code == ReactionCode.LIKE"
+
+      - test_name: "test_repository_count"
+        arrange:
+          - "repo.counts[('room1', ReactionCode.LIKE)] = 5"
+        act:
+          - "count = repo.count('room1', ReactionCode.LIKE)"
+        assert:
+          - "count == 5"
+
+    service_broadcast_tests:
+      - test_name: "test_accredited_broadcasts_to_all"
+        arrange:
+          - "payload with visibility: 'ACCREDITED'"
+        act:
+          - "service.handle_submit(payload)"
+        assert:
+          - "len(broadcaster.all_sends) == 1"
+          - "broadcaster.all_sends[0][0] == 'room1' (room_id)"
+
+      - test_name: "test_anonymous_broadcasts_to_all_redacted"
+        arrange:
+          - "payload with visibility: 'ANONYMOUS'"
+        act:
+          - "service.handle_submit(payload)"
+        assert:
+          - "len(broadcaster.all_sends) == 1"
+          - "policy.redact_calls has 1 call"
+
+      - test_name: "test_secret_broadcasts_to_facilitators_only"
+        arrange:
+          - "payload with visibility: 'SECRET'"
+        act:
+          - "service.handle_submit(payload)"
+        assert:
+          - "len(broadcaster.facilitator_sends) == 1"
+          - "len(broadcaster.all_sends) == 0"
+          - "len(broadcaster.participant_sends) == 0"
+
+technical_requirements:
+  test_framework: "pytest"
+
+  dependencies:
+    - "pytest >= 7.0"
+    - "pytest-cov (for coverage reporting)"
+
+  test_file_structure:
+    - "Import all necessary classes from reactions.py"
+    - "Define fake classes (FakePolicy, FakeRepository, etc.)"
+    - "Define pytest fixtures"
+    - "Group tests by category (use # comments or test classes)"
+    - "Use descriptive test names: test_<what>_<expected_behavior>"
+
+  code_style:
+    - "Follow pytest conventions"
+    - "Use arrange-act-assert pattern"
+    - "Use parametrize for testing similar cases"
+    - "Keep tests focused (one assertion per test when possible)"
+    - "Use fixtures to reduce duplication"
+
+acceptance_criteria:
+  functional:
+    - "✓ All test categories have at least one test"
+    - "✓ All 12 reaction types are tested"
+    - "✓ All 3 visibility modes are tested"
+    - "✓ Policy validation is tested"
+    - "✓ Broadcasting behavior is tested for all visibility modes"
+    - "✓ All tests pass"
+
+  technical:
+    - "✓ Code coverage >= 90%"
+    - "✓ No tests depend on external services (database, network, etc.)"
+    - "✓ Tests run in < 5 seconds total"
+    - "✓ All fakes are properly isolated (no shared state between tests)"
+
+validation:
+  commands:
+    - command: "pytest backend/interactions/tests/test_reactions.py -v"
+      expected_exit_code: 0
+      description: "All tests pass"
+
+    - command: "pytest backend/interactions/tests/test_reactions.py --cov=backend/interactions/domain/reactions --cov-report=term-missing"
+      expected_coverage: ">= 90%"
+      description: "Code coverage meets target"
+
+    - command: "pytest backend/interactions/tests/test_reactions.py --duration=10"
+      description: "Verify test performance"
+
+notes:
+  - "Tests should run BEFORE any Django integration"
+  - "These are pure unit tests - no integration tests yet"
+  - "Use pytest.mark.parametrize for testing all 12 reactions efficiently"
+  - "Fakes should be simple - just enough to verify behavior"
+  - "Don't test library code (datetime, dataclasses, etc.) - only OUR logic"
+
+hints_for_ai:
+  - "Start with simplest tests (enums, value objects)"
+  - "Build up to factory tests"
+  - "Service tests are most complex - use good fixtures"
+  - "FakePolicy.redact_sender should just set event.sender_info = None"
+  - "Use @pytest.fixture for reusable test setup"
+  - "Use @pytest.mark.parametrize for testing all reaction types"
+  - "Example fixture: @pytest.fixture / def policy() -> FakePolicy: return FakePolicy()"
+  - "Example parametrize: @pytest.mark.parametrize('code,cls', [(ReactionCode.LIKE, LikeReaction), ...])"
+  - "Keep FakeRoomState simple: just a dataclass with room_id, participants, facilitators, speaker"
+
+example_test_structure: |
+  # test_reactions.py
+
+  import pytest
+  from datetime import datetime
+  from backend.interactions.domain.reactions import (
+      ReactionCode, VisibilityMode, ReactionContext, ReactionEvent,
+      LikeReaction, LoveReaction, # ... etc
+      ReactionFactory, ReactionService
+  )
+
+  # ---- Fakes ----
+
+  class FakePolicy:
+      def __init__(self):
+          self.validate_calls = []
+          self.redact_calls = []
+
+      def validate(self, reaction, room_state):
+          self.validate_calls.append((reaction, room_state))
+
+      def redact_sender(self, event):
+          self.redact_calls.append(event)
+          event.sender_info = None
+          return event
+
+      # ... etc
+
+  # ---- Fixtures ----
+
+  @pytest.fixture
+  def policy():
+      return FakePolicy()
+
+  @pytest.fixture
+  def sample_context():
+      return ReactionContext(
+          sender_user_id="user123",
+          room_id="room456",
+          timestamp=datetime.now(),
+          participant_id="p123",
+          target="speaker1"
+      )
+
+  # ---- Tests ----
+
+  def test_reaction_code_has_all_values():
+      assert ReactionCode.LIKE
+      assert ReactionCode.LOVE
+      # ... etc
+
+  def test_like_reaction_properties(sample_context):
+      reaction = LikeReaction(VisibilityMode.ACCREDITED, sample_context)
+      assert reaction.code == ReactionCode.LIKE
+      assert reaction.emoji == "👍"
+      assert reaction.label == "Like"
+
+  # ... etc

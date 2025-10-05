@@ -1,0 +1,457 @@
+# Workorder: Reaction Domain Models
+# Target: Claude Haiku (or other code-focused AI)
+# Purpose: Build pure Python domain models for reaction system
+
+metadata:
+  title: "Build Reaction Domain Models"
+  assigned_to: "haiku"
+  stage: "2.4.0"
+  priority: "high"
+  created: "2025-10-04"
+  status: "pending"
+  dependencies: []
+  estimated_effort: "2 hours"
+
+context:
+  description: |
+    Create domain models for the InquiryCircle reaction system. These models represent
+    the core business logic for reactions in virtual meetings. They must be pure Python
+    (no Django/framework dependencies) so they can be tested independently and reused
+    across different infrastructures.
+
+  reference_materials:
+    - url: "https://github.com/scott009/docs-websystems/tree/main/discussion/2025-09-22-jitsi-api-python"
+      description: "Original stub implementation and requirements"
+    - path: "/home/scott/inquirycircle/backend/circles/models.py"
+      description: "Existing Circle model structure"
+    - path: "/home/scott/inquirycircle/backend/authentication/models.py"
+      description: "Existing AccessKey model structure"
+
+  business_rules:
+    - "Reactions are sent by participants during Jitsi meetings"
+    - "Each reaction has a type (like, love, dislike, etc.)"
+    - "Each reaction has a visibility mode (anonymous, accredited, secret)"
+    - "Anonymous reactions hide sender identity from speaker"
+    - "Accredited reactions show sender identity to speaker"
+    - "Secret reactions are only visible to facilitator"
+    - "Reactions must capture context: sender, room, timestamp, target (speaker)"
+
+deliverables:
+  output_path: "/home/scott/inquirycircle/backend/interactions/domain/reactions.py"
+
+  required_components:
+    - component: "Enums"
+      items:
+        - "ReactionCode (12 reaction types)"
+        - "VisibilityMode (3 modes)"
+
+    - component: "Value Objects"
+      items:
+        - "ReactionContext (sender, room, timestamp, target)"
+        - "ReactionEvent (for broadcasting)"
+
+    - component: "Domain Models"
+      items:
+        - "BaseReaction (abstract base class)"
+        - "12 concrete reaction classes (LikeReaction, LoveReaction, etc.)"
+
+    - component: "Interfaces"
+      items:
+        - "Policy (validation, redaction, rate limiting)"
+        - "Repository (persistence abstraction)"
+        - "Broadcaster (event distribution abstraction)"
+        - "JitsiDirectory (participant lookup abstraction)"
+
+    - component: "Services"
+      items:
+        - "ReactionFactory (creates reaction instances)"
+        - "ReactionService (orchestrates reaction flow)"
+
+specifications:
+
+  enums:
+    ReactionCode:
+      type: "string enum"
+      values:
+        - LIKE
+        - LOVE
+        - DISLIKE
+        - HATE
+        - AGREE
+        - DISAGREE
+        - GO_ON
+        - HURRY_UP
+        - BORING
+        - INTERESTING
+        - SYMPATHY
+        - LAUGH
+
+    VisibilityMode:
+      type: "string enum"
+      values:
+        - ANONYMOUS      # Speaker sees reaction but not sender
+        - ACCREDITED     # Speaker sees reaction and sender
+        - SECRET         # Only facilitator sees reaction
+
+  value_objects:
+    ReactionContext:
+      description: "Captures who, where, when, and to whom a reaction is sent"
+      fields:
+        - name: "sender_user_id"
+          type: "str"
+          required: true
+          description: "ID of user sending reaction"
+
+        - name: "room_id"
+          type: "str"
+          required: true
+          description: "Jitsi room identifier"
+
+        - name: "timestamp"
+          type: "datetime"
+          required: true
+          description: "When reaction was sent"
+
+        - name: "target"
+          type: "str | None"
+          required: false
+          description: "Who reaction is directed at (usually speaker)"
+
+        - name: "participant_id"
+          type: "str"
+          required: true
+          description: "Jitsi participant ID of sender"
+
+      methods:
+        - name: "to_dict"
+          returns: "dict"
+          description: "Serialize to dictionary"
+
+    ReactionEvent:
+      description: "Event data for broadcasting reactions to clients"
+      fields:
+        - name: "reaction_code"
+          type: "ReactionCode"
+          required: true
+
+        - name: "visibility"
+          type: "VisibilityMode"
+          required: true
+
+        - name: "sender_info"
+          type: "dict | None"
+          description: "Sender details (redacted for anonymous)"
+
+        - name: "timestamp"
+          type: "datetime"
+          required: true
+
+        - name: "target"
+          type: "str | None"
+          required: false
+
+      methods:
+        - name: "to_dict"
+          returns: "dict"
+
+  base_classes:
+    BaseReaction:
+      type: "abstract class"
+      description: "Abstract base for all reaction types"
+
+      abstract_properties:
+        - name: "code"
+          type: "ReactionCode"
+          description: "The specific reaction type code"
+
+        - name: "emoji"
+          type: "str"
+          description: "Unicode emoji for UI display"
+
+        - name: "label"
+          type: "str"
+          description: "Human-readable label"
+
+      fields:
+        - name: "visibility"
+          type: "VisibilityMode"
+          required: true
+
+        - name: "ctx"
+          type: "ReactionContext"
+          required: true
+          description: "Reaction context"
+
+      methods:
+        - name: "__init__"
+          params:
+            - "visibility: VisibilityMode"
+            - "ctx: ReactionContext"
+
+        - name: "to_event"
+          returns: "ReactionEvent"
+          description: "Convert to event for broadcasting"
+
+        - name: "to_dict"
+          returns: "dict"
+          description: "Serialize for storage/API"
+
+  concrete_reactions:
+    # Each concrete class inherits from BaseReaction and defines:
+    # - code (class property)
+    # - emoji (class property)
+    # - label (class property)
+
+    - class_name: "LikeReaction"
+      code: "LIKE"
+      emoji: "👍"
+      label: "Like"
+
+    - class_name: "LoveReaction"
+      code: "LOVE"
+      emoji: "❤️"
+      label: "Love"
+
+    - class_name: "DislikeReaction"
+      code: "DISLIKE"
+      emoji: "👎"
+      label: "Dislike"
+
+    - class_name: "HateReaction"
+      code: "HATE"
+      emoji: "💔"
+      label: "Hate"
+
+    - class_name: "AgreeReaction"
+      code: "AGREE"
+      emoji: "✅"
+      label: "Agree"
+
+    - class_name: "DisagreeReaction"
+      code: "DISAGREE"
+      emoji: "❌"
+      label: "Disagree"
+
+    - class_name: "GoOnReaction"
+      code: "GO_ON"
+      emoji: "➡️"
+      label: "Go On"
+
+    - class_name: "HurryUpReaction"
+      code: "HURRY_UP"
+      emoji: "⏩"
+      label: "Hurry Up"
+
+    - class_name: "BoringReaction"
+      code: "BORING"
+      emoji: "😴"
+      label: "Boring"
+
+    - class_name: "InterestingReaction"
+      code: "INTERESTING"
+      emoji: "🤔"
+      label: "Interesting"
+
+    - class_name: "SympathyReaction"
+      code: "SYMPATHY"
+      emoji: "🤗"
+      label: "Sympathy"
+
+    - class_name: "LaughReaction"
+      code: "LAUGH"
+      emoji: "😂"
+      label: "Laugh"
+
+  interfaces:
+    Policy:
+      type: "Protocol or ABC"
+      description: "Interface for policy enforcement"
+      methods:
+        - name: "validate"
+          params:
+            - "reaction: BaseReaction"
+            - "room_state: RoomState"
+          returns: "None"
+          raises: "PolicyViolation"
+          description: "Validate reaction is allowed (e.g., secret requires facilitator)"
+
+        - name: "redact_sender"
+          params:
+            - "reaction_event: ReactionEvent"
+          returns: "ReactionEvent"
+          description: "Remove PII for anonymous visibility"
+
+        - name: "rate_limit_key"
+          params:
+            - "reaction: BaseReaction"
+          returns: "str | None"
+          description: "Return rate limit key or None"
+
+        - name: "aggregate_key"
+          params:
+            - "reaction: BaseReaction"
+          returns: "str | None"
+          description: "Return aggregation key or None"
+
+    Repository:
+      type: "Protocol or ABC"
+      description: "Interface for persistence"
+      methods:
+        - name: "save"
+          params:
+            - "reaction: BaseReaction"
+          returns: "None"
+
+        - name: "count"
+          params:
+            - "room_id: str"
+            - "code: ReactionCode"
+          returns: "int"
+
+    Broadcaster:
+      type: "Protocol or ABC"
+      description: "Interface for event distribution"
+      methods:
+        - name: "send_to_all"
+          params:
+            - "room_id: str"
+            - "event: ReactionEvent"
+          returns: "None"
+
+        - name: "send_to_participant"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+            - "event: ReactionEvent"
+          returns: "None"
+
+        - name: "send_to_facilitators"
+          params:
+            - "room_id: str"
+            - "event: ReactionEvent"
+          returns: "None"
+
+    JitsiDirectory:
+      type: "Protocol or ABC"
+      description: "Interface for participant lookup"
+      methods:
+        - name: "current_speaker"
+          params:
+            - "room_id: str"
+          returns: "str | None"
+
+        - name: "facilitators"
+          params:
+            - "room_id: str"
+          returns: "list[str]"
+
+        - name: "participant_ids"
+          params:
+            - "room_id: str"
+          returns: "list[str]"
+
+  services:
+    ReactionFactory:
+      description: "Factory for creating reaction instances from codes"
+      methods:
+        - name: "create"
+          params:
+            - "code: ReactionCode"
+            - "visibility: VisibilityMode"
+            - "ctx: ReactionContext"
+          returns: "BaseReaction"
+          description: "Create appropriate reaction subclass"
+
+    ReactionService:
+      description: "Orchestrates reaction submission flow"
+
+      constructor:
+        params:
+          - "policy: Policy"
+          - "repository: Repository"
+          - "broadcaster: Broadcaster"
+          - "directory: JitsiDirectory"
+
+      methods:
+        - name: "handle_submit"
+          params:
+            - "payload: dict"
+          returns: "ReactionEvent"
+          description: |
+            Process reaction submission:
+            1. Parse payload
+            2. Create reaction via factory
+            3. Validate via policy
+            4. Save via repository
+            5. Broadcast via broadcaster (respecting visibility)
+            6. Return event
+
+technical_requirements:
+  language: "Python 3.12+"
+
+  dependencies:
+    allowed:
+      - "dataclasses (stdlib)"
+      - "datetime (stdlib)"
+      - "enum (stdlib)"
+      - "abc (stdlib)"
+      - "typing (stdlib)"
+
+    forbidden:
+      - "Django (must be framework-agnostic)"
+      - "Channels"
+      - "Any web framework"
+
+  code_style:
+    - "Follow PEP 8"
+    - "Use type hints everywhere"
+    - "Include docstrings for all classes and public methods"
+    - "Use dataclasses where appropriate"
+    - "Keep pure domain logic (no I/O, no side effects in domain models)"
+
+  structure:
+    - "All code in single file: reactions.py"
+    - "Group by: enums → value objects → interfaces → base classes → concrete classes → factories → services"
+    - "Keep interfaces as Protocols (typing.Protocol) for duck typing"
+
+acceptance_criteria:
+  functional:
+    - "✓ All 12 reaction types can be instantiated"
+    - "✓ Each reaction has correct code, emoji, and label"
+    - "✓ ReactionContext captures all required context"
+    - "✓ ReactionEvent can be serialized to dict"
+    - "✓ ReactionFactory creates correct reaction types"
+    - "✓ ReactionService orchestrates the flow (can be tested with mocks)"
+
+  technical:
+    - "✓ No external dependencies beyond Python stdlib"
+    - "✓ All classes have type hints"
+    - "✓ All public APIs have docstrings"
+    - "✓ Code passes pylint/flake8 with no errors"
+    - "✓ File is importable: `from interactions.domain.reactions import *`"
+
+validation:
+  pre_commit:
+    - command: "python -m py_compile /home/scott/inquirycircle/backend/interactions/domain/reactions.py"
+      description: "Verify syntax"
+
+    - command: "python -c 'from backend.interactions.domain.reactions import ReactionCode, LikeReaction'"
+      description: "Verify imports work"
+
+notes:
+  - "This is PURE domain logic - no Django models yet"
+  - "Django integration will come in a separate workorder"
+  - "Focus on making classes testable in isolation"
+  - "The stub from GitHub is your reference but implement fully"
+  - "RoomState is a simple value object (create as needed for Policy interface)"
+
+hints_for_ai:
+  - "Start with enums and value objects (simplest)"
+  - "Then define interfaces (Protocols)"
+  - "Then BaseReaction abstract class"
+  - "Then 12 concrete reaction classes (very similar, use copy-paste)"
+  - "Then ReactionFactory (simple mapping)"
+  - "Finally ReactionService (orchestrator)"
+  - "Use @dataclass decorator for value objects"
+  - "Use @property for abstract properties in BaseReaction"
+  - "Use typing.Protocol for interfaces (no need for ABC if you prefer duck typing)"
