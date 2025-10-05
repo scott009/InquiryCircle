@@ -1,0 +1,509 @@
+# Workorder: Airtime Allocation Domain Models
+# Target: Claude Haiku (or other code-focused AI)
+# Purpose: Build pure Python domain models for airtime allocation system
+
+metadata:
+  title: "Build Airtime Allocation Domain Models"
+  assigned_to: "haiku"
+  stage: "2.4.0"
+  priority: "high"
+  created: "2025-10-04"
+  status: "pending"
+  dependencies: []
+  estimated_effort: "3 hours"
+
+context:
+  description: |
+    Create domain models for the InquiryCircle Airtime Allocation System (AAS). These models
+    manage speaking time distribution in virtual meetings. They must be pure Python (no Django/
+    framework dependencies) so they can be tested independently and reused across different
+    infrastructures.
+
+  reference_materials:
+    - url: "https://github.com/scott009/docs-websystems/tree/main/discussion/airtime-allocation-system"
+      description: "Complete stub implementation and requirements"
+    - path: "/home/scott/inquirycircle/backend/circles/models.py"
+      description: "Existing Circle model structure"
+    - path: "/home/scott/inquirycircle/backend/authentication/models.py"
+      description: "Existing AccessKey model structure"
+    - note: "AAS stubs provide complete architecture - implement all commented code"
+
+  business_rules:
+    - "Track speaking time per participant in real-time"
+    - "Support multiple allocation algorithms (equal share, progressive stack, etc.)"
+    - "Three enforcement levels: advisory (stats only), soft (warnings), hard (auto-mute)"
+    - "Facilitators can always override rules"
+    - "Time can be lent/borrowed between participants (with caps)"
+    - "Warnings at configurable thresholds (50%, 25%, 5% remaining)"
+    - "Support both scheduled (fixed duration) and adhoc (calculated retrospectively) meetings"
+
+deliverables:
+  output_path: "/home/scott/inquirycircle/backend/interactions/domain/airtime.py"
+
+  required_components:
+    - component: "Enums"
+      items:
+        - "EnforcementLevel (ADVISORY, SOFT, HARD)"
+        - "MeetingType (SCHEDULED, ADHOC)"
+
+    - component: "Value Objects"
+      items:
+        - "TimeAllocation (participant time budget)"
+        - "SpeakingSession (single speaking instance)"
+        - "MeetingContext (meeting metadata)"
+        - "TimeWarning (warning event)"
+        - "MuteCommand (mute/unmute command)"
+
+    - component: "Interfaces"
+      items:
+        - "AirtimeRepository (persistence)"
+        - "SpeakerTracker (Jitsi integration)"
+        - "AirtimeBroadcaster (event distribution)"
+
+    - component: "Services"
+      items:
+        - "AirtimeTracker (real-time tracking)"
+        - "AllocationCalculator (calculate allocations)"
+        - "TimeLendingService (transfer time between participants)"
+
+specifications:
+
+  enums:
+    EnforcementLevel:
+      type: "string enum"
+      values:
+        - ADVISORY   # Stats only, no control
+        - SOFT       # Warnings and prompts
+        - HARD       # Auto-mute when time expires
+
+    MeetingType:
+      type: "string enum"
+      values:
+        - SCHEDULED  # Has defined start/end time
+        - ADHOC      # Duration calculated retrospectively
+
+  value_objects:
+    TimeAllocation:
+      description: "Represents time allocated to a participant"
+      fields:
+        - name: "participant_id"
+          type: "str"
+          required: true
+
+        - name: "allocated_seconds"
+          type: "int"
+          required: true
+          description: "Total time allocated to participant"
+
+        - name: "used_seconds"
+          type: "int"
+          required: true
+          default: 0
+          description: "Time already used"
+
+        - name: "borrowed_seconds"
+          type: "int"
+          required: true
+          default: 0
+          description: "Time borrowed from others"
+
+        - name: "lent_seconds"
+          type: "int"
+          required: true
+          default: 0
+          description: "Time lent to others"
+
+      methods:
+        - name: "remaining_seconds"
+          returns: "int"
+          description: "Calculate remaining speaking time"
+          logic: "return (allocated_seconds + borrowed_seconds - lent_seconds) - used_seconds"
+
+        - name: "is_exhausted"
+          returns: "bool"
+          description: "Check if participant has used all their time"
+          logic: "return remaining_seconds() <= 0"
+
+        - name: "to_dict"
+          returns: "dict"
+          description: "Serialize to dictionary"
+
+    SpeakingSession:
+      description: "Represents a single speaking session by a participant"
+      fields:
+        - name: "participant_id"
+          type: "str"
+          required: true
+
+        - name: "started_at"
+          type: "datetime"
+          required: true
+
+        - name: "ended_at"
+          type: "datetime | None"
+          required: false
+          default: null
+
+        - name: "duration_seconds"
+          type: "int"
+          required: true
+          default: 0
+
+      methods:
+        - name: "end_session"
+          returns: "int"
+          description: "End session and calculate duration"
+          logic: |
+            ended_at = datetime.now()
+            duration_seconds = int((ended_at - started_at).total_seconds())
+            return duration_seconds
+
+        - name: "to_dict"
+          returns: "dict"
+
+    MeetingContext:
+      description: "Context information about the meeting"
+      fields:
+        - name: "room_id"
+          type: "str"
+          required: true
+
+        - name: "meeting_type"
+          type: "MeetingType"
+          required: true
+
+        - name: "start_time"
+          type: "datetime"
+          required: true
+
+        - name: "end_time"
+          type: "datetime | None"
+          required: false
+
+        - name: "facilitator_id"
+          type: "str"
+          required: true
+
+        - name: "participant_ids"
+          type: "list[str]"
+          required: true
+
+      methods:
+        - name: "duration_seconds"
+          returns: "int | None"
+          description: "Calculate meeting duration (None for ongoing adhoc)"
+          logic: |
+            if end_time is None:
+                return None
+            return int((end_time - start_time).total_seconds())
+
+        - name: "is_ongoing"
+          returns: "bool"
+          logic: "return end_time is None or datetime.now() < end_time"
+
+        - name: "to_dict"
+          returns: "dict"
+
+    TimeWarning:
+      description: "Warning event when participant approaches time limit"
+      fields:
+        - name: "participant_id"
+          type: "str"
+          required: true
+
+        - name: "remaining_seconds"
+          type: "int"
+          required: true
+
+        - name: "warning_level"
+          type: "str"
+          required: true
+          description: "yellow (50%), orange (25%), red (5%)"
+
+        - name: "timestamp"
+          type: "datetime"
+          required: true
+
+      methods:
+        - name: "to_dict"
+          returns: "dict"
+
+    MuteCommand:
+      description: "Command to mute/unmute a participant"
+      fields:
+        - name: "participant_id"
+          type: "str"
+          required: true
+
+        - name: "should_mute"
+          type: "bool"
+          required: true
+
+        - name: "reason"
+          type: "str"
+          required: true
+          description: "time_exhausted, override, rule_violation"
+
+        - name: "timestamp"
+          type: "datetime"
+          required: true
+
+      methods:
+        - name: "to_dict"
+          returns: "dict"
+
+  interfaces:
+    AirtimeRepository:
+      type: "Protocol"
+      description: "Interface for persisting airtime data"
+      methods:
+        - name: "save_allocation"
+          params:
+            - "allocation: TimeAllocation"
+          returns: "None"
+
+        - name: "get_allocation"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "TimeAllocation | None"
+
+        - name: "save_session"
+          params:
+            - "session: SpeakingSession"
+          returns: "None"
+
+        - name: "get_sessions"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "list[SpeakingSession]"
+
+        - name: "get_total_speaking_time"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "int"
+          description: "Get total seconds spoken by participant in meeting"
+
+    SpeakerTracker:
+      type: "Protocol"
+      description: "Interface for tracking who is currently speaking (via Jitsi)"
+      methods:
+        - name: "get_current_speaker"
+          params:
+            - "room_id: str"
+          returns: "str | None"
+          description: "Return participant_id of current dominant speaker"
+
+        - name: "start_tracking"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "None"
+          description: "Begin tracking speaking time for participant"
+
+        - name: "stop_tracking"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "int"
+          description: "Stop tracking and return duration in seconds"
+
+    AirtimeBroadcaster:
+      type: "Protocol"
+      description: "Interface for broadcasting airtime events to clients"
+      methods:
+        - name: "send_warning"
+          params:
+            - "room_id: str"
+            - "warning: TimeWarning"
+          returns: "None"
+
+        - name: "send_mute_command"
+          params:
+            - "room_id: str"
+            - "command: MuteCommand"
+          returns: "None"
+
+        - name: "send_allocation_update"
+          params:
+            - "room_id: str"
+            - "allocation: TimeAllocation"
+          returns: "None"
+
+  services:
+    AirtimeTracker:
+      description: "Service for tracking speaking time in real-time"
+      constructor:
+        params:
+          - "repository: AirtimeRepository"
+          - "speaker_tracker: SpeakerTracker"
+          - "broadcaster: AirtimeBroadcaster"
+
+      methods:
+        - name: "on_speaker_changed"
+          params:
+            - "room_id: str"
+            - "previous_speaker: str | None"
+            - "current_speaker: str | None"
+          returns: "None"
+          description: |
+            Handle dominant speaker change event from Jitsi:
+            1. If previous_speaker exists, stop tracking and save session
+            2. If current_speaker exists, start tracking
+            3. Update allocations
+            4. Check for warnings
+            5. Broadcast updates
+
+        - name: "check_warnings"
+          params:
+            - "allocation: TimeAllocation"
+          returns: "TimeWarning | None"
+          description: "Check if participant should receive time warning"
+          logic: |
+            remaining_pct = allocation.remaining_seconds() / allocation.allocated_seconds
+            if remaining_pct <= 0.05: return TimeWarning(..., "red")
+            if remaining_pct <= 0.25: return TimeWarning(..., "orange")
+            if remaining_pct <= 0.50: return TimeWarning(..., "yellow")
+            return None
+
+        - name: "get_participant_stats"
+          params:
+            - "room_id: str"
+            - "participant_id: str"
+          returns: "dict"
+          description: "Get current speaking time statistics for participant"
+
+    AllocationCalculator:
+      description: "Service for calculating time allocations based on rules"
+      methods:
+        - name: "calculate_equal_share"
+          params:
+            - "meeting_ctx: MeetingContext"
+          returns: "dict[str, TimeAllocation]"
+          description: "Equal share: duration / num_participants"
+          logic: |
+            duration = meeting_ctx.duration_seconds()
+            per_person = duration // len(meeting_ctx.participant_ids)
+            return {pid: TimeAllocation(pid, per_person) for pid in meeting_ctx.participant_ids}
+
+        - name: "calculate_custom_allocation"
+          params:
+            - "meeting_ctx: MeetingContext"
+            - "custom_allocations: dict[str, int]"
+          returns: "dict[str, TimeAllocation]"
+          description: "Custom allocation (e.g., invited speaker gets more time)"
+
+        - name: "recalculate_on_participant_join"
+          params:
+            - "room_id: str"
+            - "new_participant_id: str"
+          returns: "dict[str, TimeAllocation]"
+          description: "Recalculate allocations when someone joins mid-meeting"
+
+    TimeLendingService:
+      description: "Service for transferring time between participants"
+      constructor:
+        params:
+          - "repository: AirtimeRepository"
+          - "broadcaster: AirtimeBroadcaster"
+
+      methods:
+        - name: "lend_time"
+          params:
+            - "room_id: str"
+            - "lender_id: str"
+            - "borrower_id: str"
+            - "seconds: int"
+          returns: "tuple[TimeAllocation, TimeAllocation]"
+          description: |
+            Transfer time from lender to borrower:
+            1. Validate lender has time to lend
+            2. Check lending cap (e.g., max 50% of own allocation)
+            3. Update allocations
+            4. Save to repository
+            5. Broadcast updates
+            6. Return updated allocations
+
+        - name: "get_lendable_seconds"
+          params:
+            - "allocation: TimeAllocation"
+            - "cap_percentage: float"
+          returns: "int"
+          description: "Calculate how much time participant can lend"
+          default_cap: 0.5
+          logic: |
+            available = allocation.remaining_seconds()
+            max_lendable = int(allocation.allocated_seconds * cap_percentage)
+            return min(available, max_lendable)
+
+technical_requirements:
+  language: "Python 3.12+"
+
+  dependencies:
+    allowed:
+      - "dataclasses (stdlib)"
+      - "datetime (stdlib)"
+      - "enum (stdlib)"
+      - "typing (stdlib)"
+
+    forbidden:
+      - "Django (must be framework-agnostic)"
+      - "Channels"
+      - "Any web framework"
+
+  code_style:
+    - "Follow PEP 8"
+    - "Use type hints everywhere"
+    - "Include docstrings for all classes and public methods"
+    - "Use dataclasses where appropriate"
+    - "Keep pure domain logic (no I/O, no side effects in domain models)"
+
+  structure:
+    - "All code in single file: airtime.py"
+    - "Group by: enums → value objects → interfaces → services"
+    - "Keep interfaces as Protocols (typing.Protocol) for duck typing"
+
+acceptance_criteria:
+  functional:
+    - "✓ All enums defined with correct values"
+    - "✓ All value objects can be instantiated and serialized"
+    - "✓ TimeAllocation correctly calculates remaining time and exhaustion"
+    - "✓ SpeakingSession correctly tracks start/end/duration"
+    - "✓ MeetingContext correctly calculates duration for scheduled/adhoc meetings"
+    - "✓ AirtimeTracker orchestrates speaker change flow"
+    - "✓ AllocationCalculator creates correct allocations"
+    - "✓ TimeLendingService validates and transfers time with caps"
+
+  technical:
+    - "✓ No external dependencies beyond Python stdlib"
+    - "✓ All classes have type hints"
+    - "✓ All public APIs have docstrings"
+    - "✓ Code passes pylint/flake8 with no errors"
+    - "✓ File is importable: `from interactions.domain.airtime import *`"
+
+validation:
+  pre_commit:
+    - command: "python -m py_compile /home/scott/inquirycircle/backend/interactions/domain/airtime.py"
+      description: "Verify syntax"
+
+    - command: "python -c 'from backend.interactions.domain.airtime import TimeAllocation, AirtimeTracker'"
+      description: "Verify imports work"
+
+notes:
+  - "This is PURE domain logic - no Django models yet"
+  - "Django integration will come in a separate workorder"
+  - "Focus on making classes testable in isolation"
+  - "The stub from GitHub is your complete reference - implement ALL commented code"
+  - "Warning thresholds: 50% (yellow), 25% (orange), 5% (red)"
+
+hints_for_ai:
+  - "Start with enums (simplest)"
+  - "Then value objects (use @dataclass)"
+  - "Then interfaces (use typing.Protocol)"
+  - "Finally services (orchestrators)"
+  - "TimeAllocation.remaining_seconds() must account for borrowed/lent time"
+  - "AirtimeTracker.on_speaker_changed() is the key method - handle all state transitions"
+  - "Use datetime.now() for timestamp generation"
+  - "MeetingContext.duration_seconds() returns None for adhoc meetings without end_time"

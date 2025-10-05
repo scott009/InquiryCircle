@@ -1,0 +1,478 @@
+# Workorder: Airtime Allocation Domain Tests
+# Target: Claude Haiku (or other code-focused AI)
+# Purpose: Build comprehensive unit tests for airtime domain models
+
+metadata:
+  title: "Build Airtime Allocation Domain Unit Tests"
+  assigned_to: "haiku"
+  stage: "2.4.0"
+  priority: "high"
+  created: "2025-10-04"
+  status: "pending"
+  dependencies:
+    - "workorder-airtime-domain.yml (must be completed first)"
+  estimated_effort: "2-3 hours"
+
+context:
+  description: |
+    Create comprehensive unit tests for the airtime allocation domain models. These tests must
+    run independently of any UI, database, or framework infrastructure. Use pytest with
+    fixtures and mocks to test all business logic in isolation.
+
+  reference_materials:
+    - url: "https://github.com/scott009/docs-websystems/tree/main/discussion/airtime-allocation-system/airtime_test.py"
+      description: "Complete test stub template"
+    - path: "/home/scott/inquirycircle/backend/interactions/domain/airtime.py"
+      description: "Source code to test (created by workorder-airtime-domain.yml)"
+
+  testing_philosophy:
+    - "Test domain logic in complete isolation"
+    - "Use fakes/mocks for all interfaces (Repository, SpeakerTracker, Broadcaster)"
+    - "Test happy paths AND edge cases"
+    - "Test all value objects, services, and business rules"
+    - "Verify time calculations are accurate"
+    - "Test lending caps and exhaustion scenarios"
+
+deliverables:
+  output_path: "/home/scott/inquirycircle/backend/interactions/tests/test_airtime.py"
+
+  test_coverage_target: "90%"
+
+  required_test_categories:
+    - category: "Enum Tests"
+      tests:
+        - "Test all EnforcementLevel values exist"
+        - "Test all MeetingType values exist"
+
+    - category: "Value Object Tests"
+      tests:
+        - "Test TimeAllocation creation and remaining time calculation"
+        - "Test TimeAllocation with borrowed/lent time"
+        - "Test TimeAllocation exhaustion check"
+        - "Test SpeakingSession duration calculation"
+        - "Test MeetingContext duration for scheduled meetings"
+        - "Test MeetingContext duration for adhoc meetings (None when ongoing)"
+        - "Test TimeWarning creation and serialization"
+        - "Test MuteCommand creation"
+
+    - category: "Tracker Service Tests"
+      tests:
+        - "Test speaker change tracking (previous speaker session saved)"
+        - "Test speaker change tracking (new speaker started)"
+        - "Test warning generation at 50% threshold (yellow)"
+        - "Test warning generation at 25% threshold (orange)"
+        - "Test warning generation at 5% threshold (red)"
+        - "Test no warning when plenty of time remaining"
+        - "Test participant stats retrieval"
+
+    - category: "Allocation Calculator Tests"
+      tests:
+        - "Test equal share calculation"
+        - "Test custom allocation"
+        - "Test recalculation when participant joins"
+
+    - category: "Time Lending Tests"
+      tests:
+        - "Test successful time transfer"
+        - "Test lending cap enforcement (50%)"
+        - "Test lending validation (insufficient time)"
+        - "Test lendable seconds calculation"
+
+    - category: "Edge Cases"
+      tests:
+        - "Test zero-duration speaking sessions"
+        - "Test negative remaining time (over-spent)"
+        - "Test adhoc meeting without end time"
+        - "Test lending more than allowed cap"
+
+specifications:
+
+  test_fixtures:
+    FakeAirtimeRepository:
+      description: "In-memory repository for tracking airtime data"
+      state:
+        - "allocations: dict[tuple[str, str], TimeAllocation]  # (room_id, participant_id)"
+        - "sessions: list[SpeakingSession]"
+      methods:
+        - "save_allocation(allocation) -> append to allocations dict"
+        - "get_allocation(room_id, participant_id) -> return from dict"
+        - "save_session(session) -> append to sessions list"
+        - "get_sessions(room_id, participant_id) -> filter sessions list"
+        - "get_total_speaking_time(room_id, participant_id) -> sum session durations"
+
+    FakeSpeakerTracker:
+      description: "Mock speaker tracker with deterministic behavior"
+      state:
+        - "current_speaker: str | None"
+        - "tracking_start_times: dict[tuple[str, str], datetime]"
+      methods:
+        - "get_current_speaker(room_id) -> return current_speaker"
+        - "start_tracking(room_id, participant_id) -> set current_speaker, record start time"
+        - "stop_tracking(room_id, participant_id) -> calculate duration, clear current_speaker"
+
+    FakeAirtimeBroadcaster:
+      description: "Mock broadcaster that captures all broadcast calls"
+      state:
+        - "warnings_sent: list[tuple[room_id, TimeWarning]]"
+        - "mute_commands_sent: list[tuple[room_id, MuteCommand]]"
+        - "allocation_updates_sent: list[tuple[room_id, TimeAllocation]]"
+      methods:
+        - "send_warning(room_id, warning) -> append to warnings_sent"
+        - "send_mute_command(room_id, command) -> append to mute_commands_sent"
+        - "send_allocation_update(room_id, allocation) -> append to allocation_updates_sent"
+
+    pytest_fixtures:
+      - fixture: "repo"
+        returns: "FakeAirtimeRepository"
+
+      - fixture: "speaker_tracker"
+        returns: "FakeSpeakerTracker"
+
+      - fixture: "broadcaster"
+        returns: "FakeAirtimeBroadcaster"
+
+      - fixture: "meeting_context"
+        returns: "MeetingContext with 1-hour scheduled meeting, 3 participants"
+
+      - fixture: "airtime_tracker"
+        params: ["repo", "speaker_tracker", "broadcaster"]
+        returns: "AirtimeTracker service"
+
+      - fixture: "allocation_calculator"
+        returns: "AllocationCalculator service"
+
+      - fixture: "lending_service"
+        params: ["repo", "broadcaster"]
+        returns: "TimeLendingService"
+
+  test_cases:
+
+    enum_tests:
+      - test_name: "test_enforcement_level_values"
+        assert:
+          - "EnforcementLevel.ADVISORY exists"
+          - "EnforcementLevel.SOFT exists"
+          - "EnforcementLevel.HARD exists"
+
+      - test_name: "test_meeting_type_values"
+        assert:
+          - "MeetingType.SCHEDULED exists"
+          - "MeetingType.ADHOC exists"
+
+    value_object_tests:
+      - test_name: "test_time_allocation_creation"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600)"
+        assert:
+          - "allocation.participant_id == 'p1'"
+          - "allocation.allocated_seconds == 600"
+          - "allocation.used_seconds == 0"
+
+      - test_name: "test_time_allocation_remaining"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=400)"
+        assert:
+          - "allocation.remaining_seconds() == 200"
+
+      - test_name: "test_time_allocation_with_borrowed_time"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=400, borrowed_seconds=100)"
+        assert:
+          - "allocation.remaining_seconds() == 300  # 600 + 100 - 400"
+
+      - test_name: "test_time_allocation_with_lent_time"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=200, lent_seconds=100)"
+        assert:
+          - "allocation.remaining_seconds() == 300  # 600 - 100 - 200"
+
+      - test_name: "test_time_allocation_exhausted"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=600)"
+        assert:
+          - "allocation.is_exhausted() is True"
+
+      - test_name: "test_time_allocation_not_exhausted"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=300)"
+        assert:
+          - "allocation.is_exhausted() is False"
+
+      - test_name: "test_speaking_session_duration"
+        arrange:
+          - "start = datetime.now()"
+          - "end = start + timedelta(seconds=120)"
+          - "session = SpeakingSession('p1', started_at=start)"
+        act:
+          - "Mock session.ended_at = end"
+          - "duration = session.end_session()"
+        assert:
+          - "duration == 120"
+
+      - test_name: "test_meeting_context_scheduled_duration"
+        arrange:
+          - "start = datetime.now()"
+          - "end = start + timedelta(hours=1)"
+          - "ctx = MeetingContext('room1', MeetingType.SCHEDULED, start, end, 'fac1', ['p1', 'p2'])"
+        assert:
+          - "ctx.duration_seconds() == 3600"
+
+      - test_name: "test_meeting_context_adhoc_no_duration"
+        arrange:
+          - "start = datetime.now()"
+          - "ctx = MeetingContext('room1', MeetingType.ADHOC, start, None, 'fac1', ['p1'])"
+        assert:
+          - "ctx.duration_seconds() is None"
+          - "ctx.is_ongoing() is True"
+
+    tracker_service_tests:
+      - test_name: "test_speaker_change_saves_previous_session"
+        arrange:
+          - "tracker = airtime_tracker"
+          - "speaker_tracker.current_speaker = 'p1'"
+        act:
+          - "tracker.on_speaker_changed('room1', previous_speaker='p1', current_speaker='p2')"
+        assert:
+          - "len(repo.sessions) == 1  # p1's session saved"
+          - "speaker_tracker.current_speaker == 'p2'"
+
+      - test_name: "test_speaker_change_starts_new_tracking"
+        arrange:
+          - "tracker = airtime_tracker"
+        act:
+          - "tracker.on_speaker_changed('room1', previous_speaker=None, current_speaker='p1')"
+        assert:
+          - "speaker_tracker.current_speaker == 'p1'"
+          - "('room1', 'p1') in speaker_tracker.tracking_start_times"
+
+      - test_name: "test_warning_at_50_percent_threshold"
+        arrange:
+          - "tracker = airtime_tracker"
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=300)"
+        act:
+          - "warning = tracker.check_warnings(allocation)"
+        assert:
+          - "warning is not None"
+          - "warning.warning_level == 'yellow'"
+          - "warning.remaining_seconds == 300"
+
+      - test_name: "test_warning_at_25_percent_threshold"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=450)"
+        act:
+          - "warning = tracker.check_warnings(allocation)"
+        assert:
+          - "warning.warning_level == 'orange'"
+
+      - test_name: "test_warning_at_5_percent_threshold"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=570)"
+        act:
+          - "warning = tracker.check_warnings(allocation)"
+        assert:
+          - "warning.warning_level == 'red'"
+
+      - test_name: "test_no_warning_when_plenty_remaining"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=100)"
+        act:
+          - "warning = tracker.check_warnings(allocation)"
+        assert:
+          - "warning is None"
+
+    allocation_calculator_tests:
+      - test_name: "test_equal_share_calculation"
+        arrange:
+          - "calculator = allocation_calculator"
+          - "meeting_context with 3 participants, 3600 seconds duration"
+        act:
+          - "allocations = calculator.calculate_equal_share(meeting_context)"
+        assert:
+          - "len(allocations) == 3"
+          - "all(a.allocated_seconds == 1200 for a in allocations.values())"
+
+      - test_name: "test_custom_allocation"
+        arrange:
+          - "calculator = allocation_calculator"
+          - "custom = {'p1': 1800, 'p2': 600, 'p3': 600}"
+        act:
+          - "allocations = calculator.calculate_custom_allocation(meeting_context, custom)"
+        assert:
+          - "allocations['p1'].allocated_seconds == 1800"
+          - "allocations['p2'].allocated_seconds == 600"
+
+    time_lending_tests:
+      - test_name: "test_successful_time_transfer"
+        arrange:
+          - "service = lending_service"
+          - "lender = TimeAllocation('p1', allocated_seconds=600, used_seconds=100)"
+          - "borrower = TimeAllocation('p2', allocated_seconds=600, used_seconds=500)"
+          - "repo.save_allocation(lender)"
+          - "repo.save_allocation(borrower)"
+        act:
+          - "updated_lender, updated_borrower = service.lend_time('room1', 'p1', 'p2', 200)"
+        assert:
+          - "updated_lender.lent_seconds == 200"
+          - "updated_borrower.borrowed_seconds == 200"
+          - "len(broadcaster.allocation_updates_sent) == 2"
+
+      - test_name: "test_lending_cap_50_percent"
+        arrange:
+          - "service = lending_service"
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=0)"
+        act:
+          - "lendable = service.get_lendable_seconds(allocation, cap_percentage=0.5)"
+        assert:
+          - "lendable == 300  # 50% of 600"
+
+      - test_name: "test_cannot_lend_more_than_cap"
+        arrange:
+          - "service = lending_service"
+          - "lender = TimeAllocation('p1', allocated_seconds=600, used_seconds=0)"
+          - "repo.save_allocation(lender)"
+        act_assert:
+          - "with pytest.raises(Exception): service.lend_time('room1', 'p1', 'p2', 400)  # Exceeds 50% cap"
+
+      - test_name: "test_cannot_lend_insufficient_time"
+        arrange:
+          - "service = lending_service"
+          - "lender = TimeAllocation('p1', allocated_seconds=600, used_seconds=550)"
+          - "repo.save_allocation(lender)"
+        act_assert:
+          - "with pytest.raises(Exception): service.lend_time('room1', 'p1', 'p2', 100)  # Only 50 seconds remaining"
+
+    edge_case_tests:
+      - test_name: "test_negative_remaining_time"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=650)"
+        assert:
+          - "allocation.remaining_seconds() == -50"
+          - "allocation.is_exhausted() is True"
+
+      - test_name: "test_zero_duration_session"
+        arrange:
+          - "now = datetime.now()"
+          - "session = SpeakingSession('p1', started_at=now)"
+        act:
+          - "Mock session.ended_at = now"
+          - "duration = session.end_session()"
+        assert:
+          - "duration == 0"
+
+      - test_name: "test_lending_with_zero_available"
+        arrange:
+          - "allocation = TimeAllocation('p1', allocated_seconds=600, used_seconds=600)"
+        act:
+          - "lendable = lending_service.get_lendable_seconds(allocation, 0.5)"
+        assert:
+          - "lendable == 0"
+
+technical_requirements:
+  test_framework: "pytest"
+
+  dependencies:
+    - "pytest >= 7.0"
+    - "pytest-cov (for coverage reporting)"
+
+  test_file_structure:
+    - "Import all necessary classes from airtime.py"
+    - "Define fake classes (FakeAirtimeRepository, etc.)"
+    - "Define pytest fixtures"
+    - "Group tests by category (use # comments or test classes)"
+    - "Use descriptive test names: test_<what>_<expected_behavior>"
+
+  code_style:
+    - "Follow pytest conventions"
+    - "Use arrange-act-assert pattern"
+    - "Keep tests focused (one assertion per test when possible)"
+    - "Use fixtures to reduce duplication"
+
+acceptance_criteria:
+  functional:
+    - "✓ All test categories have at least one test"
+    - "✓ Value object calculations tested (remaining time, exhaustion, duration)"
+    - "✓ Service orchestration tested (speaker changes, warnings, lending)"
+    - "✓ Edge cases covered (negative time, zero duration, insufficient funds)"
+    - "✓ All tests pass"
+
+  technical:
+    - "✓ Code coverage >= 90%"
+    - "✓ No tests depend on external services (database, network, etc.)"
+    - "✓ Tests run in < 5 seconds total"
+    - "✓ All fakes are properly isolated (no shared state between tests)"
+
+validation:
+  commands:
+    - command: "pytest backend/interactions/tests/test_airtime.py -v"
+      expected_exit_code: 0
+      description: "All tests pass"
+
+    - command: "pytest backend/interactions/tests/test_airtime.py --cov=backend/interactions/domain/airtime --cov-report=term-missing"
+      expected_coverage: ">= 90%"
+      description: "Code coverage meets target"
+
+notes:
+  - "Tests should run BEFORE any Django integration"
+  - "These are pure unit tests - no integration tests yet"
+  - "Don't test library code (datetime, dataclasses, etc.) - only OUR logic"
+  - "Focus on business rule validation"
+
+hints_for_ai:
+  - "Start with simplest tests (enums, value object creation)"
+  - "Build up to calculation tests (remaining time, duration)"
+  - "Service tests are most complex - use good fixtures"
+  - "Use datetime.now() and timedelta for time calculations"
+  - "FakeAirtimeRepository should use dict keyed by (room_id, participant_id)"
+  - "FakeSpeakerTracker.stop_tracking should calculate duration from stored start time"
+  - "Test both happy paths and error conditions (over-lending, negative time, etc.)"
+
+example_test_structure: |
+  # test_airtime.py
+
+  import pytest
+  from datetime import datetime, timedelta
+  from backend.interactions.domain.airtime import (
+      EnforcementLevel, MeetingType, TimeAllocation, SpeakingSession,
+      MeetingContext, TimeWarning, MuteCommand,
+      AirtimeTracker, AllocationCalculator, TimeLendingService
+  )
+
+  # ---- Fakes ----
+
+  class FakeAirtimeRepository:
+      def __init__(self):
+          self.allocations = {}
+          self.sessions = []
+
+      def save_allocation(self, allocation):
+          key = (allocation.room_id, allocation.participant_id)
+          self.allocations[key] = allocation
+
+      # ... etc
+
+  # ---- Fixtures ----
+
+  @pytest.fixture
+  def repo():
+      return FakeAirtimeRepository()
+
+  @pytest.fixture
+  def meeting_context():
+      start = datetime.now()
+      end = start + timedelta(hours=1)
+      return MeetingContext(
+          room_id="room1",
+          meeting_type=MeetingType.SCHEDULED,
+          start_time=start,
+          end_time=end,
+          facilitator_id="fac1",
+          participant_ids=["p1", "p2", "p3"]
+      )
+
+  # ---- Tests ----
+
+  def test_time_allocation_remaining():
+      allocation = TimeAllocation("p1", allocated_seconds=600, used_seconds=400)
+      assert allocation.remaining_seconds() == 200
+
+  # ... etc
