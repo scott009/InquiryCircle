@@ -147,3 +147,15 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# JaaS (Jitsi as a Service) Configuration
+JITSI_CONFIG = {
+    'domain': '8x8.vc',
+    'app_id': 'vpaas-magic-cookie-d938fb4e51da4632977d4760e6d2fa5a',
+    'external_api_url': 'https://8x8.vc/vpaas-magic-cookie-d938fb4e51da4632977d4760e6d2fa5a/external_api.js',
+
+    # JWT settings (for premium features like recording/streaming)
+    'jwt_enabled': False,  # Set True when you need recording/streaming
+    'jwt_secret': None,    # Get from 8x8 dashboard if enabling JWT
+    'jwt_app_id': None,
+}
+

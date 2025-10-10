@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.utils import timezone
+from django.conf import settings
 from rest_framework.decorators import api_view
 from rest_framework import status
 from authentication.views import get_key_from_request
@@ -277,3 +278,14 @@ def room_stats(request, room_id):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def jitsi_config(request):
+    """Return JaaS configuration for frontend"""
+    return JsonResponse({
+        'domain': settings.JITSI_CONFIG['domain'],
+        'app_id': settings.JITSI_CONFIG['app_id'],
+        'external_api_url': settings.JITSI_CONFIG['external_api_url'],
+        'jwt_enabled': settings.JITSI_CONFIG['jwt_enabled']
+    })

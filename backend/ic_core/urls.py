@@ -24,6 +24,6 @@ urlpatterns = [
         path('auth/', include('authentication.urls')),
         path('circles/', include('circles.urls')),
         path('messages/', include('facilitator_messages.urls')),
-        path('rooms/', include('jitsi_rooms.urls')),
+        path('jitsi/', include('jitsi_rooms.urls')),
     ])),
 ]

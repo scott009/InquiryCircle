@@ -108,7 +108,9 @@ const jitsiApi = ref<any>(null);
 // Simple room name based on circle ID - static so all users join same room
 const roomName = computed(() => {
   // Use a unique but static room name format
-  return `InquiryCircleDemo${props.circleId}`;
+  const name = `InquiryCircleDemo${props.circleId}`;
+  console.log('🎯 Room name computed:', name, 'from circleId:', props.circleId);
+  return name;
 });
 
 // Join conference

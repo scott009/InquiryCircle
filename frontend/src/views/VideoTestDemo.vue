@@ -64,14 +64,14 @@ import ReactionBar1 from '../components/reactions/ReactionBar1.vue'
 import DescBar1 from '../components/reactions/DescBar1.vue'
 import { useAuthStore } from '../stores/auth'
 
-// Mock data for demonstration  
+// Mock data for demonstration - MUST match across /meeting and /facmeet
 const mockCircle = {
-  id: '1',
+  id: 'demo-circle-main',  // Static ID ensures same room
   name: 'Test Circle (Video Demo)',
   description: 'Demonstration of video conference integration'
 }
 
-const mockSessionId = `session-${Date.now()}`
+const mockSessionId = 'session-static-demo'  // Static session for testing
 const isVideoJoined = ref(false)
 const videoParticipants = ref<any[]>([])
 const eventLog = ref<Array<{ timestamp: Date, message: string }>>([])

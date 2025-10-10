@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('config/', views.jitsi_config, name='jitsi_config'),
     path('create/', views.create_room, name='create_room'),
     path('circle/<int:circle_id>/', views.get_room_config, name='get_room_config'),
     path('<int:room_id>/join/', views.join_room, name='join_room'),

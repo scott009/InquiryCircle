@@ -43,7 +43,9 @@ class JitsiService {
   private api: any = null;
   private isScriptLoaded = false;
   private currentRoom: string | null = null;
-  private jitsiDomain = 'meet.jit.si'; // Can be configured for custom domains
+  // JaaS (Jitsi as a Service) configuration
+  private jitsiDomain = '8x8.vc';
+  private jaasAppId = 'vpaas-magic-cookie-d938fb4e51da4632977d4760e6d2fa5a';
 
   // Configure Jitsi domain (for custom instances)
   setJitsiDomain(domain: string): void {
@@ -51,41 +53,52 @@ class JitsiService {
     this.isScriptLoaded = false; // Force reload script from new domain
   }
 
-  // Load Jitsi Meet External API script
+  // Load JaaS External API script
   async loadJitsiScript(): Promise<void> {
     if (this.isScriptLoaded) return;
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = `https://${this.jitsiDomain}/external_api.js`;
+      // Load from JaaS-specific URL with app ID
+      script.src = `https://${this.jitsiDomain}/${this.jaasAppId}/external_api.js`;
       script.async = true;
       script.onload = () => {
         this.isScriptLoaded = true;
         resolve();
       };
-      script.onerror = () => reject(new Error('Failed to load Jitsi script'));
+      script.onerror = () => reject(new Error('Failed to load JaaS script'));
       document.head.appendChild(script);
     });
   }
 
-  // Initialize Jitsi Meet conference
+  // Initialize JaaS conference
   async initializeConference(config: JitsiMeetConfig, containerId: string): Promise<any> {
     try {
       await this.loadJitsiScript();
-      
+
       const container = document.getElementById(containerId);
       if (!container) {
         throw new Error(`Container with id ${containerId} not found`);
       }
 
+      // JaaS requires room name in format: vpaas-magic-cookie-{app-id}/{your-room-name}
+      const jaasRoomName = `${this.jaasAppId}/${config.roomName}`;
+
       const options: JitsiMeetOptions = {
-        roomName: config.roomName,
+        roomName: jaasRoomName,
         width: '100%',
         height: '500px',
         parentNode: container,
-        jwt: config.jwt, // JWT token for authentication
+        jwt: config.jwt, // JWT token for premium features (recording, streaming)
         configOverwrite: {
+          // Disable all prejoin/lobby features
           prejoinPageEnabled: false,
+          prejoinConfig: {
+            enabled: false
+          },
+          lobby: {
+            enabled: false
+          },
           startWithAudioMuted: true,
           startWithVideoMuted: false,
           enableWelcomePage: false,
@@ -93,11 +106,14 @@ class JitsiService {
           disableInviteFunctions: true,
           enableLobbyChat: false,
           enableInsecureRoomNameWarning: false,
-          // Disable authentication and security features
-          enableUserRolesBasedOnToken: false,
+          // Enable JWT-based roles when JWT is provided
+          enableUserRolesBasedOnToken: !!config.jwt,
           disableModeratorIndicator: false,
           requireDisplayName: false,
           enableNoisyMicDetection: false,
+          // Additional settings to skip prejoin
+          disablePolls: true,
+          hideConferenceSubject: false,
           // Room security settings
           ...(config.password && {
             roomPassword: config.password
@@ -132,15 +148,16 @@ class JitsiService {
         };
       }
 
+      // Create JaaS API instance
       this.api = new window.JitsiMeetExternalAPI(this.jitsiDomain, options);
       this.currentRoom = config.roomName;
-      
+
       // Set up basic event handlers
       this.setupBasicEventHandlers();
-      
+
       return this.api;
     } catch (error) {
-      console.error('Failed to initialize Jitsi conference:', error);
+      console.error('Failed to initialize JaaS conference:', error);
       throw error;
     }
   }
@@ -173,6 +190,14 @@ class JitsiService {
   onVideoConferenceLeft(callback: () => void): void {
     if (this.api) {
       this.api.addEventListener('videoConferenceLeft', callback);
+    }
+  }
+
+  onDominantSpeakerChanged(callback: (participantId: string) => void): void {
+    if (this.api) {
+      this.api.addEventListener('dominantSpeakerChanged', (event: any) => {
+        callback(event.id);
+      });
     }
   }
 
