@@ -49,10 +49,17 @@ apiClient.interceptors.response.use(
 );
 
 // Auth types
+export interface CircleInfo {
+  id: number
+  name: string
+  jitsi_room_id: string
+}
+
 export interface AuthResponse {
   valid: boolean
   role?: 'facilitator' | 'participant'
   key_id?: number
+  circle?: CircleInfo
   error?: string
 }
 

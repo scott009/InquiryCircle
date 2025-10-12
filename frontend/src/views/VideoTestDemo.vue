@@ -9,15 +9,27 @@
           <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
               <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                Demo Circle: "{{ mockCircle.name }}"
+                Circle: "{{ circleName }}"
               </h3>
+
+              <!-- Loading State -->
+              <div v-if="isLoading" class="text-center py-8">
+                <p class="text-gray-600">Loading circle information...</p>
+              </div>
+
+              <!-- No Circle Error -->
+              <div v-else-if="noCircleError" class="text-center py-8">
+                <p class="text-red-600 mb-4">You are not assigned to any circle yet.</p>
+                <p class="text-gray-600">Please contact your facilitator to be added to a circle.</p>
+              </div>
 
               <!-- Jitsi Video Conference Component -->
               <VideoConference
-                :circleId="mockCircle.id"
+                v-else
+                :circleId="circleId"
                 :sessionId="mockSessionId"
-                :circleTitle="mockCircle.name"
-                userDisplayName="Demo User"
+                :circleTitle="circleName"
+                :userDisplayName="`${authStore.userRole || 'User'}`"
                 @joined="onVideoJoined"
                 @left="onVideoLeft"
                 @participantJoined="onParticipantJoined"
@@ -56,7 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import VideoConference from '../components/circles/VideoConference.vue'
 import HtmlWin1 from '../components/html/HtmlWin1.vue'
 import HtmlWin2 from '../components/html/HtmlWin2.vue'
@@ -64,18 +77,20 @@ import ReactionBar1 from '../components/reactions/ReactionBar1.vue'
 import DescBar1 from '../components/reactions/DescBar1.vue'
 import { useAuthStore } from '../stores/auth'
 
-// Mock data for demonstration - MUST match across /meeting and /facmeet
-const mockCircle = {
-  id: 'demo-circle-main',  // Static ID ensures same room
-  name: 'Test Circle (Video Demo)',
-  description: 'Demonstration of video conference integration'
-}
+const authStore = useAuthStore()
+const router = useRouter()
+
+// Get circle data from authenticated user
+const userCircle = computed(() => authStore.userCircle)
+const circleId = computed(() => userCircle.value?.jitsi_room_id || 'demo-fallback')
+const circleName = computed(() => userCircle.value?.name || 'No Circle Assigned')
 
 const mockSessionId = 'session-static-demo'  // Static session for testing
 const isVideoJoined = ref(false)
 const videoParticipants = ref<any[]>([])
 const eventLog = ref<Array<{ timestamp: Date, message: string }>>([])
-const authStore = useAuthStore()
+const isLoading = ref(true)
+const noCircleError = ref(false)
 
 // Event handlers
 const onVideoJoined = (participantInfo: any) => {
@@ -115,25 +130,33 @@ const addToEventLog = (message: string) => {
   }
 }
 
-// Auto-authenticate with demo facilitator key and set circle name
+// Check authentication and load circle on mount
 onMounted(async () => {
+  // Redirect to login if not authenticated
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'login', query: { redirect: '/meeting' } })
+    return
+  }
+
+  // Check if user has a circle assigned
+  if (!authStore.userCircle) {
+    console.warn('User is authenticated but not assigned to any circle')
+    noCircleError.value = true
+    isLoading.value = false
+    addToEventLog('❌ No circle assigned')
+    return
+  }
+
   // Set circle name in TopBar
   const { useTopBar } = await import('../composables/useTopBar')
   const { setCircleName } = useTopBar()
-  setCircleName(mockCircle.name)
+  setCircleName(circleName.value)
 
-  if (!authStore.isAuthenticated) {
-    try {
-      const success = await authStore.login('facilitator-key-123')
-      if (success) {
-        addToEventLog('🔑 Authenticated as demo facilitator')
-      } else {
-        addToEventLog('❌ Authentication failed: Invalid key')
-      }
-    } catch (error) {
-      addToEventLog('❌ Authentication failed: ' + error)
-      console.error('Demo authentication failed:', error)
-    }
-  }
+  isLoading.value = false
+  addToEventLog(`✅ Joined circle: ${circleName.value}`)
+  console.log('Meeting view loaded:', {
+    role: authStore.userRole,
+    circle: authStore.userCircle
+  })
 })
 </script>
