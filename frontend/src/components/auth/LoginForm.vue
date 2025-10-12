@@ -104,9 +104,9 @@ const handleSubmit = async () => {
   if (success) {
     // Redirect based on role
     if (authStore.isFacilitator) {
-      router.push('/dashboard')
+      router.push('/administration')
     } else {
-      router.push('/circles')
+      router.push('/meeting')
     }
   }
 }
