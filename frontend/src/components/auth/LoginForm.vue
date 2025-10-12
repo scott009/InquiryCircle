@@ -102,12 +102,8 @@ const handleSubmit = async () => {
   const success = await authStore.login(accessKey.value.trim())
   
   if (success) {
-    // Redirect based on role
-    if (authStore.isFacilitator) {
-      router.push('/administration')
-    } else {
-      router.push('/meeting')
-    }
+    // Redirect all users to welcome page
+    router.push('/welcome')
   }
 }
 </script>

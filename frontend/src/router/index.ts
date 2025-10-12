@@ -30,6 +30,12 @@ const router = createRouter({
       component: () => import('../components/auth/LoginForm.vue')
     },
     {
+      path: '/welcome',
+      name: 'welcome',
+      component: () => import('../views/Welcome.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/administration',
       name: 'administration',
       component: () => import('../views/Administration.vue'),
