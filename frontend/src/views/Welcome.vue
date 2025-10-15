@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
     <div class="max-w-2xl w-full">
+      <!-- DisplayText1 Component -->
+      <DisplayText1 />
+
       <!-- Welcome Header -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-600 text-white mb-4">
@@ -103,6 +106,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import DisplayText1 from '@/components/layout/DisplayText1.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -110,12 +114,12 @@ const authStore = useAuthStore()
 // Redirect to login if not authenticated
 onMounted(() => {
   if (!authStore.isAuthenticated) {
-    router.push('/login')
+    router.push('/')
   }
 })
 
 const handleLogout = () => {
   authStore.logout()
-  router.push('/login')
+  router.push('/')
 }
 </script>

@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../components/dashboard/Dashboard.vue')
+      component: () => import('../components/auth/LoginForm.vue')
     },
     {
       path: '/tests',
@@ -95,9 +95,9 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  // If already authenticated and going to login, redirect to administration
-  if (to.name === 'login' && authStore.isAuthenticated) {
-    next({ name: 'administration' })
+  // If already authenticated and going to login or home, redirect to welcome
+  if ((to.name === 'login' || to.name === 'home') && authStore.isAuthenticated) {
+    next({ name: 'welcome' })
     return
   }
 

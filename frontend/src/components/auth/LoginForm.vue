@@ -1,5 +1,8 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <!-- DisplayText1 Component -->
+    <DisplayText1 />
+
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
       <div class="mx-auto h-12 w-12 text-center">
         <div class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-blue-600 text-white">
@@ -88,6 +91,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import DisplayText1 from '@/components/layout/DisplayText1.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
