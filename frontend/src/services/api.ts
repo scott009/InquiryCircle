@@ -334,6 +334,137 @@ export class ApiService {
     }
     return error?.message || 'An unknown error occurred'
   }
+
+  // Translation API Methods
+
+  // Get all translation documents
+  async getTranslationDocuments(circleId?: number): Promise<TranslationDocument[]> {
+    const url = circleId ? `/translation/documents/?circle=${circleId}` : '/translation/documents/'
+    const response = await apiClient.get(url)
+    return response.data
+  }
+
+  // Get single translation document
+  async getTranslationDocument(documentId: number): Promise<TranslationDocument> {
+    const response = await apiClient.get(`/translation/documents/${documentId}/`)
+    return response.data
+  }
+
+  // Start translation session
+  async startTranslationSession(data: SessionStartRequest): Promise<TranslationSession> {
+    const response = await apiClient.post('/translation/sessions/start/', data)
+    return response.data
+  }
+
+  // Get session details
+  async getTranslationSession(sessionId: number): Promise<TranslationSession> {
+    const response = await apiClient.get(`/translation/sessions/${sessionId}/`)
+    return response.data
+  }
+
+  // End translation session
+  async endTranslationSession(sessionId: number): Promise<{ message: string; session: TranslationSession }> {
+    const response = await apiClient.post(`/translation/sessions/${sessionId}/end/`)
+    return response.data
+  }
+
+  // List all paragraphs in a session
+  async getSessionParagraphs(
+    sessionId: number,
+    filters?: { status?: string; chapter?: string }
+  ): Promise<ParagraphsResponse> {
+    let url = `/translation/sessions/${sessionId}/paragraphs/`
+    if (filters) {
+      const params = new URLSearchParams()
+      if (filters.status) params.append('status', filters.status)
+      if (filters.chapter) params.append('chapter', filters.chapter)
+      if (params.toString()) url += `?${params.toString()}`
+    }
+    const response = await apiClient.get(url)
+    return response.data
+  }
+
+  // Get single paragraph
+  async getParagraph(paragraphId: number): Promise<ParagraphCorrection> {
+    const response = await apiClient.get(`/translation/paragraphs/${paragraphId}/`)
+    return response.data
+  }
+
+  // Update paragraph correction
+  async updateParagraph(
+    paragraphId: number,
+    data: ParagraphUpdateRequest
+  ): Promise<ParagraphCorrection> {
+    const response = await apiClient.patch(`/translation/paragraphs/${paragraphId}/update/`, data)
+    return response.data
+  }
+
+  // Approve paragraph (facilitator only)
+  async approveParagraph(paragraphId: number): Promise<ParagraphCorrection> {
+    const response = await apiClient.post(`/translation/paragraphs/${paragraphId}/approve/`)
+    return response.data
+  }
+}
+
+// Translation types
+export interface TranslationDocument {
+  id: number
+  circle: number
+  file_path: string
+  language: string
+  status: 'uploaded' | 'loaded' | 'in_session' | 'saved' | 'archived'
+  title: string
+  edition: string
+  json_version: string
+  created_by: number | null
+  created_at: string
+  last_loaded_at: string | null
+  last_saved_at: string | null
+}
+
+export interface TranslationSession {
+  id: number
+  document: number
+  circle: number
+  status: 'active' | 'completed' | 'aborted'
+  started_by: number | null
+  started_at: string
+  ended_at: string | null
+  ended_by: number | null
+  total_paragraphs: number
+  paragraphs_modified: number
+}
+
+export interface ParagraphCorrection {
+  id: number
+  session: number
+  paragraph_id: string
+  chapter_id: string
+  section_id: string
+  text: string
+  original_translation: string
+  corrected_translation: string
+  status: 'unchecked' | 'in_progress' | 'approved'
+  last_modified_by: number | null
+  last_modified_at: string
+  approved_by: number | null
+  approved_at: string | null
+}
+
+export interface SessionStartRequest {
+  document_id: number
+  circle_id: number
+}
+
+export interface ParagraphUpdateRequest {
+  corrected_translation: string
+  status?: 'unchecked' | 'in_progress' | 'approved'
+}
+
+export interface ParagraphsResponse {
+  session_id: number
+  total_paragraphs: number
+  paragraphs: ParagraphCorrection[]
 }
 
 // Export singleton instance

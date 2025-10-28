@@ -1,5 +1,5 @@
 <template>
-  <div class="display-text-1 bg-amber-50 border-2 border-gray-800 rounded-lg p-6 my-4">
+  <div class="display-text-1 bg-gray-50 p-6 my-4">
     <div class="max-w-3xl mx-auto space-y-4 text-gray-800">
       <p class="text-lg leading-relaxed">
         An Inquiry Circle is a place to come together in honest, respectful conversation.

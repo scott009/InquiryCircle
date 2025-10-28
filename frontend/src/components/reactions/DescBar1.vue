@@ -1,5 +1,5 @@
 <template>
-  <div id="descbar1" class="description-bar bg-amber-50 border border-black rounded-lg p-4">
+  <div id="descbar1" class="description-bar bg-gray-50 p-4">
     <!-- Empty State -->
     <div v-if="!selectedElement" class="empty-state text-gray-600 text-sm">
       <span class="font-mono text-xs text-gray-400">{{ descriptions.defaultMessage.id }}</span>

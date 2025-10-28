@@ -66,6 +66,13 @@ const router = createRouter({
       path: '/circle-manager-demo',
       name: 'circle-manager-demo',
       component: () => import('../views/CircleManagerDemo.vue')
+    },
+    {
+      path: '/translation-circle',
+      name: 'translation-circle',
+      component: () => import('../views/TranslationCircle.vue')
+      // Phase 3: No auth required for testing
+      // Phase 4: Will add meta: { requiresAuth: true }
     }
   ]
 })

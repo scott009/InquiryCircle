@@ -52,6 +52,10 @@ print_status "Loading operations guide..."
 cat "$DOCS_PATH/operations-guide.md"
 echo -e "\n---\n"
 
+print_status "Loading operations guide 2 (operation directives)..."
+cat "$DOCS_PATH/operations-guide2.md"
+echo -e "\n---\n"
+
 print_status "Loading infrastructure documentation..."
 cat "$DOCS_PATH/infrastructure.md"
 echo -e "\n---\n"
@@ -65,8 +69,9 @@ print_info "🤖 AI Session Ready - InquiryCircle project context loaded"
 echo
 print_info "💡 Key Information Loaded:"
 echo "   • Project architecture and constraints"
-echo "   • Current development status and priorities" 
+echo "   • Current development status and priorities"
 echo "   • Complete operations procedures and commands"
+echo "   • Operation directives (streamlined commands)"
 echo "   • Infrastructure setup and environments"
 echo "   • Documentation change history"
 echo
