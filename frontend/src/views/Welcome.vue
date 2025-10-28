@@ -35,7 +35,7 @@
           </div>
 
           <router-link
-            to="/meeting"
+            :to="participantMeetingRoute"
             class="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
           >
             Go to Your Meeting
@@ -100,7 +100,7 @@
 
               <!-- Circle Action Button -->
               <router-link
-                :to="`/facmeet?circle=${circle.id}`"
+                :to="getCircleRoute(circle)"
                 class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors mt-auto"
               >
                 Join the Circle
@@ -209,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { apiService, type Circle } from '@/services/api'
@@ -217,6 +217,37 @@ import DisplayText1 from '@/components/layout/DisplayText1.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Helper function to determine circle route based on circle type
+const getCircleRoute = (circle: Circle): string => {
+  switch (circle.circle_type) {
+    case 'translation':
+      return `/translation-circle/${circle.id}`
+    case 'discussion':
+      return `/facmeet?circle=${circle.id}`
+    case 'study':
+      return `/facmeet?circle=${circle.id}` // TODO: Add study route when implemented
+    default:
+      return `/facmeet?circle=${circle.id}`
+  }
+}
+
+// Computed property for participant's meeting route
+const participantMeetingRoute = computed(() => {
+  const circle = authStore.userCircle
+  if (!circle) return '/meeting'
+
+  switch (circle.circle_type) {
+    case 'translation':
+      return `/translation-circle/${circle.id}`
+    case 'discussion':
+      return '/meeting'
+    case 'study':
+      return '/meeting' // TODO: Add study route when implemented
+    default:
+      return '/meeting'
+  }
+})
 
 // Circles state
 const circles = ref<Circle[]>([])

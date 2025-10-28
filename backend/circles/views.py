@@ -34,7 +34,8 @@ def circles_list_create(request):
                 'description': circle.description,
                 'status': circle.status,
                 'created_at': circle.created_at.isoformat(),
-                'jitsi_room_id': circle.jitsi_room_id
+                'jitsi_room_id': circle.jitsi_room_id,
+                'circle_type': circle.circle_type
             } for circle in circles]
         })
     

@@ -53,6 +53,7 @@ export interface CircleInfo {
   id: number
   name: string
   jitsi_room_id: string
+  circle_type?: 'discussion' | 'translation' | 'study'
 }
 
 export interface AuthResponse {
@@ -71,6 +72,7 @@ export interface Circle {
   status: 'inactive' | 'active' | 'ended'
   created_at: string
   jitsi_room_id: string
+  circle_type: 'discussion' | 'translation' | 'study'
 }
 
 export interface CircleDetail extends Circle {

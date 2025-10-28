@@ -20,7 +20,10 @@ from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.http import JsonResponse
 
+from authentication.views import get_key_from_request
+from circles.models import Circle, CircleParticipant
 from .models import TranslationDocument, TranslationSession, ParagraphCorrection
 from .serializers import (
     TranslationDocumentSerializer,
@@ -31,6 +34,48 @@ from .serializers import (
     SessionEndSerializer,
 )
 from .services import JSONDocumentLoader, JSONDocumentWriter
+
+
+def check_circle_access(request, circle_id):
+    """
+    Check if user has access to a translation circle.
+
+    Returns: tuple (access_key, circle, error_response)
+    - On success: (access_key, circle, None)
+    - On failure: (None, None, JsonResponse with error)
+    """
+    # Verify authentication
+    access_key, error = get_key_from_request(request)
+    if not access_key:
+        return None, None, JsonResponse({'error': error}, status=401)
+
+    # Get circle and verify it's a translation circle
+    try:
+        circle = Circle.objects.get(id=circle_id, circle_type='translation')
+    except Circle.DoesNotExist:
+        return None, None, JsonResponse(
+            {'error': 'Translation circle not found'},
+            status=404
+        )
+
+    # Check membership
+    if access_key.role == 'facilitator':
+        if circle.facilitator_key != access_key:
+            return None, None, JsonResponse(
+                {'error': 'Access denied'},
+                status=403
+            )
+    else:
+        if not CircleParticipant.objects.filter(
+            circle=circle,
+            access_key=access_key
+        ).exists():
+            return None, None, JsonResponse(
+                {'error': 'Access denied'},
+                status=403
+            )
+
+    return access_key, circle, None
 
 
 @api_view(['POST'])
@@ -49,6 +94,12 @@ def start_session(request):
     serializer = SessionStartSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check circle access
+    circle_id = request.data.get('circle_id')
+    access_key, circle, error_response = check_circle_access(request, circle_id)
+    if error_response:
+        return error_response
 
     document = serializer.validated_data['document']
 
@@ -69,9 +120,8 @@ def start_session(request):
 
     # Create session using loader service
     try:
-        # TODO: Get actual user from auth middleware
-        # For now, use document.created_by as placeholder
-        started_by = document.created_by
+        # Use authenticated user
+        started_by = access_key
 
         loader = JSONDocumentLoader(document.file_path)
         session = loader.create_session(document, started_by)
@@ -100,6 +150,11 @@ def end_session(request, session_id):
     """
     session = get_object_or_404(TranslationSession, id=session_id)
 
+    # Check circle access
+    access_key, circle, error_response = check_circle_access(request, session.document.circle_id)
+    if error_response:
+        return error_response
+
     if session.status != 'active':
         return Response(
             {'error': f'Session is not active (status: {session.status})'},
@@ -107,8 +162,8 @@ def end_session(request, session_id):
         )
 
     try:
-        # TODO: Get actual user from auth middleware
-        ended_by = session.started_by
+        # Use authenticated user
+        ended_by = access_key
 
         # Save to JSON using writer service
         writer = JSONDocumentWriter(session.document.file_path)
@@ -135,6 +190,12 @@ def get_session(request, session_id):
     GET /api/translation/sessions/<id>/
     """
     session = get_object_or_404(TranslationSession, id=session_id)
+
+    # Check circle access
+    access_key, circle, error_response = check_circle_access(request, session.document.circle_id)
+    if error_response:
+        return error_response
+
     serializer = TranslationSessionSerializer(session)
     return Response(serializer.data)
 
@@ -150,6 +211,11 @@ def list_paragraphs(request, session_id):
     - chapter: Filter by chapter_id
     """
     session = get_object_or_404(TranslationSession, id=session_id)
+
+    # Check circle access
+    access_key, circle, error_response = check_circle_access(request, session.document.circle_id)
+    if error_response:
+        return error_response
 
     paragraphs = session.paragraphs.all()
 
@@ -178,6 +244,12 @@ def get_paragraph(request, paragraph_id):
     GET /api/translation/paragraphs/<id>/
     """
     paragraph = get_object_or_404(ParagraphCorrection, id=paragraph_id)
+
+    # Check circle access
+    access_key, circle, error_response = check_circle_access(request, paragraph.session.document.circle_id)
+    if error_response:
+        return error_response
+
     serializer = ParagraphCorrectionSerializer(paragraph)
     return Response(serializer.data)
 
@@ -195,6 +267,11 @@ def update_paragraph(request, paragraph_id):
     """
     paragraph = get_object_or_404(ParagraphCorrection, id=paragraph_id)
 
+    # Check circle access
+    access_key, circle, error_response = check_circle_access(request, paragraph.session.document.circle_id)
+    if error_response:
+        return error_response
+
     # Validate input
     update_serializer = ParagraphUpdateSerializer(data=request.data)
     if not update_serializer.is_valid():
@@ -204,9 +281,8 @@ def update_paragraph(request, paragraph_id):
     paragraph.corrected_translation = update_serializer.validated_data['corrected_translation']
     paragraph.status = update_serializer.validated_data.get('status', 'in_progress')
 
-    # TODO: Get actual user from auth middleware
-    # For now, use session.started_by as placeholder
-    paragraph.last_modified_by = paragraph.session.started_by
+    # Use authenticated user
+    paragraph.last_modified_by = access_key
     paragraph.save()
 
     # Update session statistics
@@ -229,11 +305,19 @@ def approve_paragraph(request, paragraph_id):
     """
     paragraph = get_object_or_404(ParagraphCorrection, id=paragraph_id)
 
-    # TODO: Add facilitator permission check
-    # For now, anyone can approve
+    # Check circle access and verify facilitator role
+    access_key, circle, error_response = check_circle_access(request, paragraph.session.document.circle_id)
+    if error_response:
+        return error_response
 
-    # TODO: Get actual user from auth middleware
-    approved_by = paragraph.session.started_by
+    if access_key.role != 'facilitator':
+        return JsonResponse(
+            {'error': 'Only facilitators can approve paragraphs'},
+            status=403
+        )
+
+    # Use authenticated user
+    approved_by = access_key
 
     paragraph.status = 'approved'
     paragraph.approved_by = approved_by
@@ -257,8 +341,32 @@ class TranslationDocumentViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """Filter by circle if provided"""
+        # Get authenticated user
+        access_key, error = get_key_from_request(self.request)
+        if not access_key:
+            return TranslationDocument.objects.none()
+
         queryset = super().get_queryset()
         circle_id = self.request.query_params.get('circle')
         if circle_id:
+            # Verify user has access to this circle
+            _, _, error_response = check_circle_access(self.request, circle_id)
+            if error_response:
+                return TranslationDocument.objects.none()
             queryset = queryset.filter(circle_id=circle_id)
+        else:
+            # Return documents for circles the user has access to
+            if access_key.role == 'facilitator':
+                # Facilitators see their own circle documents
+                user_circles = Circle.objects.filter(
+                    facilitator_key=access_key,
+                    circle_type='translation'
+                ).values_list('id', flat=True)
+            else:
+                # Participants see documents from their circles
+                user_circles = CircleParticipant.objects.filter(
+                    access_key=access_key
+                ).values_list('circle_id', flat=True)
+            queryset = queryset.filter(circle_id__in=user_circles)
+
         return queryset

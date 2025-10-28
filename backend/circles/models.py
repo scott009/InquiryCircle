@@ -10,7 +10,18 @@ class Circle(models.Model):
         ('active', 'Active'),
         ('ended', 'Ended'),
     ]
-    
+
+    CIRCLE_TYPE_CHOICES = [
+        ('discussion', 'Discussion'),
+        ('translation', 'Translation'),
+        ('study', 'Study'),
+    ]
+
+    circle_type = models.CharField(
+        max_length=20,
+        choices=CIRCLE_TYPE_CHOICES,
+        default='discussion'
+    )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     facilitator_key = models.ForeignKey(

@@ -36,7 +36,8 @@ def verify_key(request):
                 circle_data = {
                     'id': circle.id,
                     'name': circle.name,
-                    'jitsi_room_id': circle.jitsi_room_id
+                    'jitsi_room_id': circle.jitsi_room_id,
+                    'circle_type': circle.circle_type
                 }
         else:
             # Participants: get first circle they're part of
@@ -46,7 +47,8 @@ def verify_key(request):
                 circle_data = {
                     'id': circle.id,
                     'name': circle.name,
-                    'jitsi_room_id': circle.jitsi_room_id
+                    'jitsi_room_id': circle.jitsi_room_id,
+                    'circle_type': circle.circle_type
                 }
 
         response_data = {

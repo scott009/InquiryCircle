@@ -50,12 +50,14 @@ const router = createRouter({
     {
       path: '/meeting',
       name: 'meeting',
-      component: () => import('../views/VideoTestDemo.vue')
+      component: () => import('../views/VideoTestDemo.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/facmeet',
       name: 'facmeet',
-      component: () => import('../views/FacilitatorMeeting.vue')
+      component: () => import('../views/FacilitatorMeeting.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/facpanel',
@@ -68,11 +70,10 @@ const router = createRouter({
       component: () => import('../views/CircleManagerDemo.vue')
     },
     {
-      path: '/translation-circle',
+      path: '/translation-circle/:circleId',
       name: 'translation-circle',
-      component: () => import('../views/TranslationCircle.vue')
-      // Phase 3: No auth required for testing
-      // Phase 4: Will add meta: { requiresAuth: true }
+      component: () => import('../views/TranslationCircle.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

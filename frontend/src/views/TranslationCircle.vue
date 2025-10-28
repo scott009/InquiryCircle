@@ -56,8 +56,7 @@
  * Main route for collaborative translation editing circles.
  * Composes 4 translation-specific display elements.
  *
- * Phase 3: Full implementation without authentication
- * TODO Phase 4: Add circle authentication and membership
+ * Phase 4: Circle integration with authentication and membership
  * TODO Phase 5: Add Jitsi video integration
  * TODO Phase 6: Add facilitator controls
  */
@@ -79,9 +78,10 @@ export default {
   },
   data() {
     return {
-      // Hardcoded for Phase 3 testing (no auth)
+      // Get from route params (Phase 4)
+      circleId: parseInt(this.$route.params.circleId as string),
+      // TODO: Get documentId from circle configuration or allow facilitator to select
       documentId: 1,
-      circleId: 7, // Updated to match database
 
       // State
       document: null as TranslationDocument | null,
