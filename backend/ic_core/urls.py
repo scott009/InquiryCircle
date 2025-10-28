@@ -25,5 +25,6 @@ urlpatterns = [
         path('circles/', include('circles.urls')),
         path('messages/', include('facilitator_messages.urls')),
         path('jitsi/', include('jitsi_rooms.urls')),
+        path('translation/', include('circles.translation.urls')),
     ])),
 ]
